@@ -17,8 +17,8 @@ use casper_types::{
     ContractPackageHash, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Group, Key,
     Parameter, RuntimeArgs, URef, U256, U512,
 };
-use contract::{Marketplace, Time};
 use contract_utils::{ContractContext, OnChainContractStorage, ReentrancyGuard};
+use kunftmarketplace_contract::{Marketplace, Time};
 
 #[derive(Default)]
 struct MarketplaceContract(OnChainContractStorage);

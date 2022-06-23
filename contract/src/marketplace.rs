@@ -47,6 +47,17 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         SellOrders::instance().set(collection, token_id, sell_order);
     }
 
+    fn cancel_sell_order(&mut self, seller: AccountHash, collection: ContractHash, token_id: U256) {
+        let order = SellOrders::instance().get(collection, token_id);
+        if order.seller.ne(&seller) {
+            self.revert(Error::NotOrderCreator);
+        }
+        if order.buyer.is_some() {
+            self.revert(Error::FinishedOrder);
+        }
+        SellOrders::instance().remove(contract_hash, token_id);
+    }
+
     fn buy_sell_order_cspr(
         &mut self,
         caller: AccountHash,

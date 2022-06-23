@@ -13,7 +13,7 @@ impl MarketplaceInstance {
     ) -> MarketplaceInstance {
         MarketplaceInstance(TestContract::new(
             env,
-            "",
+            "marketplace_contract.wasm",
             contract_name,
             sender,
             runtime_args! {},

@@ -16,6 +16,7 @@ pub enum Error {
     RequireApprove,
     /// Spender does not have enough balance.
     FinishedOrder,
+    NotOrderCreator,
     /// Spender does not have enough allowance approved.
     InsufficientAllowance,
     /// Operation would cause an integer overflow.

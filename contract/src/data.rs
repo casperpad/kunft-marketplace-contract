@@ -42,6 +42,10 @@ impl SellOrders {
             order,
         );
     }
+    pub fn remove(&self, contract_hash: ContractHash, token_id: TokenId) {
+        self.dict
+            .remove::<SellOrder>(&self.contract_hash_and_value_to_str(contract_hash, token_id));
+    }
 }
 
 const PURSE_KEY_NAME: &str = "deposit_purse";
