@@ -3,6 +3,8 @@ use alloc::vec::Vec;
 use casper_contract::contract_api::runtime;
 use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs, U256};
 
+use crate::TokenId;
+
 pub struct ICEP47 {
     pub contract_hash: ContractHash,
 }
@@ -32,7 +34,7 @@ impl ICEP47 {
             },
         );
     }
-    pub fn get_approved(&self, owner: Key, token_id: U256) -> Option<Key> {
+    pub fn get_approved(&self, owner: Key, token_id: TokenId) -> Option<Key> {
         runtime::call_contract(
             self.contract_hash,
             "get_approved",
@@ -43,7 +45,7 @@ impl ICEP47 {
         )
     }
 
-    pub fn owner_of(&self, token_id: U256) -> Option<Key> {
+    pub fn owner_of(&self, token_id: TokenId) -> Option<Key> {
         runtime::call_contract(
             self.contract_hash,
             "owner_of",

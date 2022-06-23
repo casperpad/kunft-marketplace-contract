@@ -2,16 +2,14 @@ use casper_contract::{
     contract_api::{runtime, system},
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_types::{
-    account::AccountHash, ContractHash, ContractPackageHash, Key, URef, U256, U512,
-};
+use casper_types::{account::AccountHash, ContractHash, ContractPackageHash, Key, URef, U512};
 use contract_utils::{ContractContext, ContractStorage};
 
 use crate::{
     data::{self, DepositPurse, SellOrders},
     interfaces::icep47::ICEP47,
     structs::order::SellOrder,
-    Error, Time,
+    Error, Time, TokenId,
 };
 pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
     fn init(&mut self, fee: u8, fee_wallet: AccountHash) {
@@ -26,7 +24,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         seller: AccountHash,
         start_time: Time,
         collection: ContractHash,
-        token_id: U256,
+        token_id: TokenId,
         price: U512,
     ) {
         let sell_order: SellOrder = SellOrder {
@@ -47,7 +45,12 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         SellOrders::instance().set(collection, token_id, sell_order);
     }
 
-    fn cancel_sell_order(&mut self, seller: AccountHash, collection: ContractHash, token_id: U256) {
+    fn cancel_sell_order(
+        &mut self,
+        seller: AccountHash,
+        collection: ContractHash,
+        token_id: TokenId,
+    ) {
         let order = SellOrders::instance().get(collection, token_id);
         if order.seller.ne(&seller) {
             self.revert(Error::NotOrderCreator);
@@ -62,7 +65,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         &mut self,
         caller: AccountHash,
         collection: ContractHash,
-        token_id: U256,
+        token_id: TokenId,
         amount: U512,
     ) {
         self.assert_valid_cspr_transfer(amount);
