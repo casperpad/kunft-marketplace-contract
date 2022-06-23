@@ -55,7 +55,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         if order.buyer.is_some() {
             self.revert(Error::FinishedOrder);
         }
-        SellOrders::instance().remove(contract_hash, token_id);
+        SellOrders::instance().remove(collection, token_id);
     }
 
     fn buy_sell_order_cspr(

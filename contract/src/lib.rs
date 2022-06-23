@@ -15,3 +15,4 @@ pub use error::Error;
 pub type Time = u64;
 pub type TokenId = U256;
 pub use marketplace::Marketplace;
+pub use structs::order::SellOrder;

@@ -1,11 +1,14 @@
 use alloc::string::String;
-use casper_contract::{contract_api::system, unwrap_or_revert::UnwrapOrRevert};
+use casper_contract::{
+    contract_api::{runtime, system},
+    unwrap_or_revert::UnwrapOrRevert,
+};
 use casper_types::{account::AccountHash, ContractHash, Key, URef, U512};
 use contract_utils::{get_key, key_and_value_to_str, set_key, Dict};
 
-use crate::{structs::order::SellOrder, Time, TokenId};
+use crate::{structs::order::SellOrder, TokenId};
 
-const ORDERS_DICT: &str = "orders";
+const SELL_ORDERS_DICT: &str = "sell_orders";
 
 pub struct SellOrders {
     dict: Dict,
@@ -14,12 +17,12 @@ pub struct SellOrders {
 impl SellOrders {
     pub fn instance() -> SellOrders {
         SellOrders {
-            dict: Dict::instance(ORDERS_DICT),
+            dict: Dict::instance(SELL_ORDERS_DICT),
         }
     }
 
     pub fn init() {
-        Dict::init(ORDERS_DICT)
+        Dict::init(SELL_ORDERS_DICT)
     }
 
     fn contract_hash_and_value_to_str(
@@ -56,12 +59,14 @@ pub struct DepositPurse {}
 impl DepositPurse {
     pub fn init() {
         let purse = system::create_purse();
-        set_key(PURSE_KEY_NAME, purse);
+
+        runtime::put_key(PURSE_KEY_NAME, Key::from(purse));
+
         set_key(PURSE_BALANCE_KEY_NAME, U512::zero());
     }
 
     pub fn purse() -> URef {
-        get_key(PURSE_KEY_NAME).unwrap_or_revert()
+        *runtime::get_key(PURSE_KEY_NAME).unwrap().as_uref().unwrap()
     }
 
     pub fn purse_balance() -> U512 {

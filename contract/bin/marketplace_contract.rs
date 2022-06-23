@@ -14,7 +14,7 @@ use casper_contract::{
 };
 use casper_types::{
     account::AccountHash, runtime_args, CLType, CLTyped, CLValue, ContractHash,
-    ContractPackageHash, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Group, Key,
+    ContractPackageHash, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Group,
     Parameter, RuntimeArgs, URef, U256, U512,
 };
 use contract_utils::{ContractContext, OnChainContractStorage, ReentrancyGuard};
@@ -76,6 +76,17 @@ pub extern "C" fn buy_sell_order_cspr() {
 }
 
 #[no_mangle]
+pub extern "C" fn cancel_sell_order() {
+    let caller = runtime::get_caller();
+    let collection: ContractHash = {
+        let collection_str: String = runtime::get_named_arg("collection");
+        ContractHash::from_formatted_str(&collection_str).unwrap()
+    };
+    let token_id: U256 = runtime::get_named_arg("token_id");
+    MarketplaceContract::default().cancel_sell_order(caller, collection, token_id);
+}
+
+#[no_mangle]
 pub extern "C" fn get_deposit_purse() {
     let purse = MarketplaceContract::default().purse();
     runtime::ret(CLValue::from_t(purse).unwrap_or_revert());
@@ -129,12 +140,57 @@ fn get_entry_points() -> EntryPoints {
     entry_points.add_entry_point(EntryPoint::new(
         "constructor",
         vec![
-            Parameter::new("name", String::cl_type()),
-            Parameter::new("symbol", String::cl_type()),
+            Parameter::new("fee", CLType::U8),
+            Parameter::new("fee_wallet", CLType::String),
         ],
         <()>::cl_type(),
         EntryPointAccess::Groups(vec![Group::new("constructor")]),
         EntryPointType::Contract,
     ));
+
+    entry_points.add_entry_point(EntryPoint::new(
+        "create_sell_order",
+        vec![
+            Parameter::new("start_time", CLType::U64),
+            Parameter::new("collection", CLType::String),
+            Parameter::new("token_id", CLType::U256),
+            Parameter::new("price", CLType::U256),
+        ],
+        <()>::cl_type(),
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
+    entry_points.add_entry_point(EntryPoint::new(
+        "buy_sell_order_cspr",
+        vec![
+            Parameter::new("collection", CLType::String),
+            Parameter::new("token_id", CLType::U256),
+            Parameter::new("amount", CLType::U512),
+        ],
+        <()>::cl_type(),
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
+    entry_points.add_entry_point(EntryPoint::new(
+        "cancel_sell_order",
+        vec![
+            Parameter::new("collection", CLType::String),
+            Parameter::new("token_id", CLType::U256),
+        ],
+        <()>::cl_type(),
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
+    entry_points.add_entry_point(EntryPoint::new(
+        "get_deposit_purse",
+        vec![],
+        CLType::URef,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
     entry_points
 }
