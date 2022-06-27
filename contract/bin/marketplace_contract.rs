@@ -4,21 +4,17 @@
 #[macro_use]
 extern crate alloc;
 
-#[cfg(not(target_arch = "wasm32"))]
-compile_error!("target arch should be wasm32: compile with '--target wasm32-unknown-unknown'");
-
 use alloc::{collections::BTreeSet, string::String};
 use casper_contract::{
     contract_api::{runtime, storage},
     unwrap_or_revert::UnwrapOrRevert,
 };
 use casper_types::{
-    account::AccountHash, runtime_args, CLType, CLTyped, CLValue, ContractHash,
-    ContractPackageHash, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Group,
-    Parameter, RuntimeArgs, URef, U256, U512,
+    runtime_args, CLType, CLTyped, CLValue, ContractHash, ContractPackageHash, EntryPoint,
+    EntryPointAccess, EntryPointType, EntryPoints, Group, Parameter, RuntimeArgs, URef, U256, U512,
 };
 use contract_utils::{ContractContext, OnChainContractStorage, ReentrancyGuard};
-use kunftmarketplace_contract::{Marketplace, Time};
+use kunftmarketplace_contract::{get_immediate_caller_address, Address, Marketplace, Time};
 
 #[derive(Default)]
 struct MarketplaceContract(OnChainContractStorage);
@@ -33,7 +29,7 @@ impl Marketplace<OnChainContractStorage> for MarketplaceContract {}
 impl ReentrancyGuard<OnChainContractStorage> for MarketplaceContract {}
 
 impl MarketplaceContract {
-    fn constructor(&mut self, fee: u8, fee_wallet: AccountHash) {
+    fn constructor(&mut self, fee: u8, fee_wallet: Address) {
         Marketplace::init(self, fee, fee_wallet);
         ReentrancyGuard::init(self);
     }
@@ -42,42 +38,50 @@ impl MarketplaceContract {
 #[no_mangle]
 pub extern "C" fn constructor() {
     let fee: u8 = runtime::get_named_arg("fee");
-    let fee_wallet: AccountHash = {
-        let fee_wallet_str: String = runtime::get_named_arg("fee_wallet");
-        AccountHash::from_formatted_str(&fee_wallet_str).unwrap()
-    };
+    let fee_wallet: Address = runtime::get_named_arg("fee_wallet");
     MarketplaceContract::default().constructor(fee, fee_wallet);
 }
 
 #[no_mangle]
 pub extern "C" fn create_sell_order() {
-    let seller = runtime::get_caller();
+    let caller = get_immediate_caller_address().unwrap();
     let start_time: Time = runtime::get_named_arg("start_time");
     let collection: ContractHash = {
         let collection_str: String = runtime::get_named_arg("collection");
         ContractHash::from_formatted_str(&collection_str).unwrap()
     };
     let token_id: U256 = runtime::get_named_arg("token_id");
-    let price: U512 = runtime::get_named_arg("price");
+    let pay_token: Option<ContractHash> = {
+        let pay_token_str: Option<String> = runtime::get_named_arg("pay_token");
+        pay_token_str.map(|str| ContractHash::from_formatted_str(&str).unwrap())
+    };
+    let price: U256 = runtime::get_named_arg("price");
     MarketplaceContract::default()
-        .create_sell_order(seller, start_time, collection, token_id, price);
+        .create_sell_order(caller, start_time, collection, token_id, pay_token, price);
 }
 
 #[no_mangle]
 pub extern "C" fn buy_sell_order_cspr() {
-    let caller = runtime::get_caller();
+    let caller = get_immediate_caller_address().unwrap();
     let collection: ContractHash = {
         let collection_str: String = runtime::get_named_arg("collection");
         ContractHash::from_formatted_str(&collection_str).unwrap()
     };
     let token_id: U256 = runtime::get_named_arg("token_id");
     let amount: U512 = runtime::get_named_arg("amount");
-    MarketplaceContract::default().buy_sell_order_cspr(caller, collection, token_id, amount);
+    let addtional_recipient: Option<Address> = runtime::get_named_arg("addtional_recipient");
+    MarketplaceContract::default().buy_sell_order_cspr(
+        caller,
+        collection,
+        token_id,
+        amount,
+        addtional_recipient,
+    );
 }
 
 #[no_mangle]
 pub extern "C" fn cancel_sell_order() {
-    let caller = runtime::get_caller();
+    let caller = get_immediate_caller_address().unwrap();
     let collection: ContractHash = {
         let collection_str: String = runtime::get_named_arg("collection");
         ContractHash::from_formatted_str(&collection_str).unwrap()
@@ -96,7 +100,7 @@ pub extern "C" fn get_deposit_purse() {
 pub extern "C" fn call() {
     let contract_name: String = runtime::get_named_arg("contract_name");
     let fee: u8 = runtime::get_named_arg("fee");
-    let fee_wallet: String = runtime::get_named_arg("fee_wallet");
+    let fee_wallet: Address = runtime::get_named_arg("fee_wallet");
     let (contract_hash, _) = storage::new_contract(
         get_entry_points(),
         None,
@@ -141,7 +145,7 @@ fn get_entry_points() -> EntryPoints {
         "constructor",
         vec![
             Parameter::new("fee", CLType::U8),
-            Parameter::new("fee_wallet", CLType::String),
+            Parameter::new("fee_wallet", CLType::Key),
         ],
         <()>::cl_type(),
         EntryPointAccess::Groups(vec![Group::new("constructor")]),

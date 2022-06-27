@@ -7,11 +7,9 @@ use casper_contract::{
     unwrap_or_revert::UnwrapOrRevert,
 };
 use casper_types::{runtime_args, ContractHash, RuntimeArgs, URef, U256, U512};
+use kunftmarketplace_contract::Address;
 
 extern crate alloc;
-
-#[cfg(not(target_arch = "wasm32"))]
-compile_error!("target arch should be wasm32: compile with '--target wasm32-unknown-unknown'");
 
 #[no_mangle]
 pub extern "C" fn call() {
@@ -22,18 +20,22 @@ pub extern "C" fn call() {
     let collection: String = runtime::get_named_arg("collection");
     let token_id: U256 = runtime::get_named_arg("token_id");
     let amount: U512 = runtime::get_named_arg("amount");
+    let addtional_recipient: Option<Address> = runtime::get_named_arg("addtional_recipient");
     let deposit_purse: URef =
         runtime::call_contract(marketplace_contract, "get_deposit_purse", runtime_args! {});
     let account_purse = account::get_main_purse();
     system::transfer_from_purse_to_purse(account_purse, deposit_purse, amount, None)
         .unwrap_or_revert();
+    // system::transfer_from_purse_to_purse(deposit_purse, account_purse, amount, None)
+    //     .unwrap_or_revert();
     let _: () = runtime::call_contract(
         marketplace_contract,
         "buy_sell_order_cspr",
         runtime_args! {
           "collection" => collection,
           "token_id" => token_id,
-          "amount" => amount
+          "amount" => amount,
+          "addtional_recipient" => addtional_recipient
         },
     );
 }

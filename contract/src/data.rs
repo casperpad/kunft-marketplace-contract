@@ -1,12 +1,12 @@
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
 use casper_contract::{
     contract_api::{runtime, system},
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_types::{account::AccountHash, ContractHash, Key, URef, U512};
+use casper_types::{account::AccountHash, ContractHash, ContractPackageHash, Key, URef, U512};
 use contract_utils::{get_key, key_and_value_to_str, set_key, Dict};
 
-use crate::{structs::order::SellOrder, TokenId};
+use crate::{event::MarketplaceEvent, structs::order::SellOrder, Address, TokenId};
 
 const SELL_ORDERS_DICT: &str = "sell_orders";
 
@@ -90,10 +90,14 @@ pub fn get_fee() -> u8 {
 
 const FEE_WALLET_KEY: &str = "fee_wallet";
 
-pub fn set_fee_wallet(wallet: AccountHash) {
+pub fn set_fee_wallet(wallet: Address) {
     set_key(FEE_WALLET_KEY, wallet);
 }
 
-pub fn get_fee_wallet() -> AccountHash {
+pub fn get_fee_wallet() -> Address {
     get_key(FEE_WALLET_KEY).unwrap_or_revert()
+}
+
+pub fn emit(event: &MarketplaceEvent, pacakge_hash: ContractPackageHash) {
+    // let mut events = Vec::new();
 }

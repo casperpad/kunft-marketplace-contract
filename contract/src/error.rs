@@ -10,6 +10,7 @@ use casper_types::ApiError;
 /// variant.
 ///
 #[repr(u16)]
+#[derive(Debug)]
 pub enum Error {
     /// ERC20 contract called from within an invalid context.
     PermissionDenied = 0u16,
@@ -19,8 +20,11 @@ pub enum Error {
     NotOrderCreator,
     /// Spender does not have enough allowance approved.
     InsufficientAllowance,
+    InsufficientBalance,
+    InvalidPayToken,
     /// Operation would cause an integer overflow.
     Overflow,
+    InvalidContext,
 }
 
 impl From<Error> for ApiError {

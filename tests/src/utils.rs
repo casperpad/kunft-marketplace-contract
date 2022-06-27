@@ -14,8 +14,8 @@ pub fn key_to_str(key: &Key) -> String {
 
 pub fn key_and_value_to_str<T: CLTyped + ToBytes>(key: &Key, value: &T) -> String {
     let mut hasher = VarBlake2b::new(32).unwrap();
-    hasher.update(key.to_bytes().unwrap());
-    hasher.update(value.to_bytes().unwrap());
+    hasher.update(&key.to_bytes().unwrap());
+    hasher.update(&value.to_bytes().unwrap());
     let mut ret = [0u8; 32];
     hasher.finalize_variable(|hash| ret.clone_from_slice(hash));
     hex::encode(ret)

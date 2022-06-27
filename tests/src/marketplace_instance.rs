@@ -1,8 +1,9 @@
 use casper_types::{
-    account::AccountHash, runtime_args, ContractHash, ContractPackageHash, Key, RuntimeArgs, U256,
-    U512,
+    account::AccountHash,
+    bytesrepr::{FromBytes, ToBytes},
+    runtime_args, CLTyped, ContractHash, ContractPackageHash, Key, RuntimeArgs, U256,
 };
-use kunftmarketplace_contract::{SellOrder, Time};
+use kunftmarketplace_contract::{Address, SellOrder, Time};
 use test_env::{TestContract, TestEnv};
 
 use crate::utils::key_and_value_to_str;
@@ -15,7 +16,7 @@ impl MarketplaceInstance {
         contract_name: &str,
         sender: AccountHash,
         fee: u8,
-        fee_wallet: String,
+        fee_wallet: Address,
     ) -> MarketplaceInstance {
         MarketplaceInstance(TestContract::new(
             env,
@@ -35,7 +36,8 @@ impl MarketplaceInstance {
         start_time: Time,
         collection: String,
         token_id: U256,
-        price: U512,
+        pay_token: Option<String>,
+        price: U256,
     ) {
         self.0.call_contract(
             sender,
@@ -44,6 +46,7 @@ impl MarketplaceInstance {
                 "start_time" => start_time,
                 "collection" => collection,
                 "token_id" => token_id,
+                "pay_token" => pay_token,
                 "price" => price,
             },
         )
@@ -58,6 +61,21 @@ impl MarketplaceInstance {
                 "token_id" => token_id,
             },
         )
+    }
+
+    pub fn buy_sell_order(&self, sender: AccountHash, collection: String, token_id: U256) {
+        self.0.call_contract(
+            sender,
+            "buy_sell_order",
+            runtime_args! {
+                "collection" => collection,
+                "token_id" => token_id,
+            },
+        )
+    }
+
+    pub fn result<T: CLTyped + FromBytes>(&self) -> T {
+        self.0.query_named_key("result".to_string())
     }
 
     pub fn sell_order_of(&self, collection: ContractHash, token_id: U256) -> SellOrder {

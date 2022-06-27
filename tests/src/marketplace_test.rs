@@ -1,4 +1,7 @@
-use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs, U512};
+use casper_types::{
+    account::AccountHash, runtime_args, ContractPackageHash, Key, RuntimeArgs, U256, U512,
+};
+use kunftmarketplace_contract::Address;
 use std::{collections::BTreeMap, path::PathBuf, vec};
 use test_env::{utils::DeploySource, TestEnv};
 
@@ -56,7 +59,7 @@ fn deploy() -> (TestEnv, TestContext, AccountHash) {
         "kunft_marketplace",
         owner,
         250u8,
-        owner.to_formatted_string(),
+        Address::from(owner),
     );
 
     let nft = CEP47Instance::new(&env, "kunft", owner, "KUNFT", "KNFT", meta::contract_meta());
@@ -72,8 +75,58 @@ fn should_deploy() {
 }
 
 #[test]
+fn should_create_sell_order_and_buy_cspr() {
+    let (env, test_context, owner) = deploy();
+    let user = env.next_user();
+    let token_id = TokenId::zero();
+    let token_meta = meta::red_dragon();
+    let nft = test_context.nft;
+    let marketplace = test_context.marketplace;
+    nft.mint_one(owner, user, token_id, token_meta.clone());
+
+    nft.approve(
+        user,
+        Address::from(marketplace.contract_package_hash()),
+        vec![token_id],
+    );
+
+    let pay_token: Option<String> = None;
+    let price = U256::one();
+    marketplace.create_sell_order(
+        user,
+        0u64,
+        nft.contract_hash().to_formatted_string(),
+        token_id,
+        pay_token,
+        price,
+    );
+
+    // buy nft
+    let buyer = env.next_user();
+    let session_code = PathBuf::from(PRE_BUY_ORDER_WASM);
+    let price_u512 = U512::one();
+    let addtional_recipient: Option<Address> = None;
+    env.run(
+        buyer,
+        DeploySource::Code(session_code),
+        runtime_args! {
+            "marketplace_contract" => marketplace.contract_hash().to_formatted_string(),
+            "collection" => nft.contract_hash().to_formatted_string(),
+            "token_id" => token_id,
+            "amount" => price_u512,
+            "addtional_recipient" => addtional_recipient
+        },
+    );
+
+    let nft_owner = nft.owner_of(token_id).unwrap();
+    assert_eq!(nft_owner, Key::from(buyer));
+}
+
+#[test]
+#[ignore]
 fn should_create_sell_order_and_buy() {
     let (env, test_context, owner) = deploy();
+
     let user = env.next_user();
     let token_id = TokenId::zero();
     let token_meta = meta::red_dragon();
@@ -87,34 +140,22 @@ fn should_create_sell_order_and_buy() {
         vec![token_id],
     );
 
-    let price = U512::one();
+    // Mint ERC20
+
+    let pay_token: Option<String> = None;
+    let price = U256::one();
     marketplace.create_sell_order(
         user,
         0u64,
         nft.contract_hash().to_formatted_string(),
         token_id,
+        pay_token,
         price,
     );
-
-    // buy nft
-    let buyer = env.next_user();
-    let session_code = PathBuf::from(PRE_BUY_ORDER_WASM);
-    env.run(
-        buyer,
-        DeploySource::Code(session_code),
-        runtime_args! {
-            "marketplace_contract" => marketplace.contract_hash().to_formatted_string(),
-            "collection" => nft.contract_hash().to_formatted_string(),
-            "token_id" => token_id,
-            "amount" => price
-        },
-    );
-
-    let nft_owner = nft.owner_of(token_id).unwrap();
-    assert_eq!(nft_owner, Key::from(buyer));
 }
 
 #[test]
+#[ignore]
 fn should_create_sell_order_and_cancel() {
     let (env, test_context, owner) = deploy();
     let user = env.next_user();
@@ -130,18 +171,18 @@ fn should_create_sell_order_and_cancel() {
         vec![token_id],
     );
 
-    let price = U512::one();
+    let pay_token: Option<String> = None;
+    let price = U256::one();
     marketplace.create_sell_order(
         user,
         0u64,
         nft.contract_hash().to_formatted_string(),
         token_id,
+        pay_token,
         price,
     );
 
     let sell_order = marketplace.sell_order_of(nft.contract_hash(), token_id);
-
-    assert!(sell_order.buyer.is_none());
 
     marketplace.cancel_sell_order(user, nft.contract_hash().to_formatted_string(), token_id);
 }
