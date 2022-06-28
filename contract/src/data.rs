@@ -1,9 +1,14 @@
-use alloc::string::String;
+use alloc::{
+    collections::BTreeMap,
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 use casper_contract::{
-    contract_api::{runtime, system},
+    contract_api::{runtime, storage, system},
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_types::{ContractHash, ContractPackageHash, Key, URef, U512};
+use casper_types::{ContractHash, Key, URef, U512};
 use contract_utils::{get_key, key_and_value_to_str, set_key, Dict};
 
 use crate::{event::MarketplaceEvent, structs::order::SellOrder, Address, Bids, TokenId};
@@ -86,7 +91,7 @@ impl BuyOrders {
         );
     }
 
-    pub fn remove(&self, contract_hash: ContractHash, token_id: TokenId) {
+    pub fn _remove(&self, contract_hash: ContractHash, token_id: TokenId) {
         self.dict
             .remove::<Bids>(&contract_hash_and_value_to_str(contract_hash, token_id));
     }
@@ -140,6 +145,27 @@ pub fn get_fee_wallet() -> Address {
     get_key(FEE_WALLET_KEY).unwrap_or_revert()
 }
 
-pub fn emit(event: &MarketplaceEvent, pacakge_hash: ContractPackageHash) {
-    // let mut events = Vec::new();
+pub fn emit(event: &MarketplaceEvent) {
+    let mut events = Vec::new();
+    match event {
+        MarketplaceEvent::SellOrderCreated {
+            creator,
+            collection,
+            token_id,
+            pay_token,
+            price,
+        } => {
+            let mut param = BTreeMap::new();
+            param.insert("event_type", "SellOrderCreated".to_string());
+            param.insert("creator", format!("{:?}", creator));
+            param.insert("collection", collection.to_string());
+            param.insert("token_id", format!("{}", token_id));
+            param.insert("pay_token", format!("{:?}", pay_token));
+            param.insert("price", format!("{}", price));
+            events.push(param);
+        }
+    }
+    for param in events {
+        let _: URef = storage::new_uref(param);
+    }
 }

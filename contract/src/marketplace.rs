@@ -57,6 +57,13 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
             vec![token_id],
         );
         SellOrders::instance().set(collection, token_id, sell_order);
+        self.emit(MarketplaceEvent::SellOrderCreated {
+            creator: caller,
+            collection,
+            token_id,
+            pay_token,
+            price,
+        })
     }
 
     fn cancel_sell_order(&mut self, caller: Address, collection: ContractHash, token_id: TokenId) {
@@ -424,6 +431,6 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         ContractPackageHash::from(hash_addr)
     }
     fn emit(&mut self, event: MarketplaceEvent) {
-        data::emit(&event, self.contract_package_hash());
+        data::emit(&event);
     }
 }
