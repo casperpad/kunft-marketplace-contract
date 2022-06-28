@@ -123,7 +123,6 @@ fn should_create_sell_order_and_buy_cspr() {
 }
 
 #[test]
-#[ignore]
 fn should_create_sell_order_and_buy() {
     let (env, test_context, owner) = deploy();
 
@@ -155,7 +154,6 @@ fn should_create_sell_order_and_buy() {
 }
 
 #[test]
-#[ignore]
 fn should_create_sell_order_and_cancel() {
     let (env, test_context, owner) = deploy();
     let user = env.next_user();
@@ -182,7 +180,11 @@ fn should_create_sell_order_and_cancel() {
         price,
     );
 
-    let sell_order = marketplace.sell_order_of(nft.contract_hash(), token_id);
+    let mut token_owner = nft.owner_of(token_id).unwrap();
+
+    assert_eq!(token_owner, Key::from(marketplace.contract_package_hash()));
 
     marketplace.cancel_sell_order(user, nft.contract_hash().to_formatted_string(), token_id);
+    token_owner = nft.owner_of(token_id).unwrap();
+    assert_eq!(token_owner, Key::from(user));
 }

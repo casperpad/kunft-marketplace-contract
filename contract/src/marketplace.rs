@@ -10,7 +10,7 @@ use casper_types::{
 use contract_utils::{set_key, ContractContext, ContractStorage};
 
 use crate::{
-    data::{self, DepositPurse, SellOrders},
+    data::{self, BuyOrders, DepositPurse, SellOrders},
     event::MarketplaceEvent,
     interfaces::{icep47::ICEP47, ierc20::IERC20},
     libs::u512_to_u256,
@@ -20,6 +20,7 @@ use crate::{
 pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
     fn init(&mut self, fee: u8, fee_wallet: Address) {
         SellOrders::init();
+        BuyOrders::init();
         DepositPurse::init();
         self.set_fee(fee);
         self.set_fee_wallet(fee_wallet);
@@ -46,7 +47,6 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         let approved = ICEP47::new(collection)
             .get_approved(caller, token_id)
             .unwrap_or_revert_with(Error::RequireApprove);
-        // .unwrap_or_revert();
 
         if !approved.eq(&Address::from(self.contract_package_hash())) {
             self.revert(Error::RequireApprove);
@@ -59,12 +59,13 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         SellOrders::instance().set(collection, token_id, sell_order);
     }
 
-    fn cancel_sell_order(&mut self, seller: Address, collection: ContractHash, token_id: TokenId) {
+    fn cancel_sell_order(&mut self, caller: Address, collection: ContractHash, token_id: TokenId) {
         let order = SellOrders::instance().get(collection, token_id);
-        if order.creator.ne(&seller) {
+        if order.creator.ne(&caller) {
             self.revert(Error::NotOrderCreator);
         }
         self.assert_order_is_active(&order);
+        ICEP47::new(collection).transfer(caller, vec![token_id]);
         SellOrders::instance().remove(collection, token_id);
     }
 

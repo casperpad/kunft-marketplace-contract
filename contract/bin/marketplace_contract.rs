@@ -93,7 +93,8 @@ pub extern "C" fn cancel_sell_order() {
 #[no_mangle]
 pub extern "C" fn get_deposit_purse() {
     let purse = MarketplaceContract::default().purse();
-    runtime::ret(CLValue::from_t(purse).unwrap_or_revert());
+    // https://github.com/Jiuhong-casperlabs/restrict-access-right/blob/main/contract/src/contract.rs#L25
+    runtime::ret(CLValue::from_t(purse.into_add()).unwrap_or_revert());
 }
 
 #[no_mangle]

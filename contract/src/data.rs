@@ -1,12 +1,16 @@
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
 use casper_contract::{
     contract_api::{runtime, system},
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_types::{account::AccountHash, ContractHash, ContractPackageHash, Key, URef, U512};
+use casper_types::{ContractHash, ContractPackageHash, Key, URef, U512};
 use contract_utils::{get_key, key_and_value_to_str, set_key, Dict};
 
-use crate::{event::MarketplaceEvent, structs::order::SellOrder, Address, TokenId};
+use crate::{event::MarketplaceEvent, structs::order::SellOrder, Address, Bids, TokenId};
+
+fn contract_hash_and_value_to_str(contract_hash: ContractHash, created_time: TokenId) -> String {
+    key_and_value_to_str(&Key::from(contract_hash), &created_time)
+}
 
 const SELL_ORDERS_DICT: &str = "sell_orders";
 
@@ -22,7 +26,7 @@ impl SellOrders {
     }
 
     pub fn init() {
-        Dict::init(SELL_ORDERS_DICT)
+        Dict::init(SELL_ORDERS_DICT);
     }
 
     fn contract_hash_and_value_to_str(
@@ -45,14 +49,52 @@ impl SellOrders {
             order,
         );
     }
+
     pub fn remove(&self, contract_hash: ContractHash, token_id: TokenId) {
         self.dict
             .remove::<SellOrder>(&self.contract_hash_and_value_to_str(contract_hash, token_id));
     }
 }
 
+const BUY_ORDERS_DICT: &str = "buy_orders";
+
+pub struct BuyOrders {
+    dict: Dict,
+}
+
+impl BuyOrders {
+    pub fn instance() -> SellOrders {
+        SellOrders {
+            dict: Dict::instance(BUY_ORDERS_DICT),
+        }
+    }
+
+    pub fn init() {
+        Dict::init(BUY_ORDERS_DICT);
+    }
+
+    pub fn get(&self, contract_hash: ContractHash, token_id: TokenId) -> Bids {
+        self.dict
+            .get(&contract_hash_and_value_to_str(contract_hash, token_id))
+            .unwrap_or_revert()
+    }
+
+    pub fn set(&self, contract_hash: ContractHash, token_id: TokenId, bids: Bids) {
+        self.dict.set(
+            &contract_hash_and_value_to_str(contract_hash, token_id),
+            bids,
+        );
+    }
+
+    pub fn remove(&self, contract_hash: ContractHash, token_id: TokenId) {
+        self.dict
+            .remove::<Bids>(&contract_hash_and_value_to_str(contract_hash, token_id));
+    }
+}
+
 const PURSE_KEY_NAME: &str = "deposit_purse";
 const PURSE_BALANCE_KEY_NAME: &str = "purse_balance";
+
 #[derive(Default)]
 pub struct DepositPurse {}
 

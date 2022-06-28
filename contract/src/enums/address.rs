@@ -1,4 +1,5 @@
 //! Implementation of an `Address` which refers either an account hash, or a contract hash.
+
 use alloc::vec::Vec;
 use casper_types::{
     account::AccountHash,
