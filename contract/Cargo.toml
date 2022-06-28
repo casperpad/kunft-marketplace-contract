@@ -23,8 +23,15 @@ doctest = false
 test = false
 
 [[bin]]
-name = "pre_buy_order_cspr"
-path = "bin/pre_buy_order_cspr.rs"
+name = "pre_buy_sell_order_cspr"
+path = "bin/pre_buy_sell_order_cspr.rs"
+bench = false
+doctest = false
+test = false
+
+[[bin]]
+name = "pre_order_cspr"
+path = "bin/pre_order_cspr.rs"
 bench = false
 doctest = false
 test = false

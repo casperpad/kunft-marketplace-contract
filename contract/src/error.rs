@@ -22,6 +22,10 @@ pub enum Error {
     InsufficientAllowance,
     InsufficientBalance,
     InvalidPayToken,
+    NotExistOrder,
+    AlreadyExistOrder,
+    NotExistToken,
+    NotTokenOwner,
     /// Operation would cause an integer overflow.
     Overflow,
     InvalidContext,

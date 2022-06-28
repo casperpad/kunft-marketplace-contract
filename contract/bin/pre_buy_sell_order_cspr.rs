@@ -20,14 +20,12 @@ pub extern "C" fn call() {
     let collection: String = runtime::get_named_arg("collection");
     let token_id: U256 = runtime::get_named_arg("token_id");
     let amount: U512 = runtime::get_named_arg("amount");
-    let addtional_recipient: Option<Address> = runtime::get_named_arg("addtional_recipient");
+    let additional_recipient: Option<Address> = runtime::get_named_arg("additional_recipient");
     let deposit_purse: URef =
         runtime::call_contract(marketplace_contract, "get_deposit_purse", runtime_args! {});
     let account_purse = account::get_main_purse();
     system::transfer_from_purse_to_purse(account_purse, deposit_purse, amount, None)
         .unwrap_or_revert();
-    // system::transfer_from_purse_to_purse(deposit_purse, account_purse, amount, None)
-    //     .unwrap_or_revert();
     let _: () = runtime::call_contract(
         marketplace_contract,
         "buy_sell_order_cspr",
@@ -35,7 +33,7 @@ pub extern "C" fn call() {
           "collection" => collection,
           "token_id" => token_id,
           "amount" => amount,
-          "addtional_recipient" => addtional_recipient
+          "additional_recipient" => additional_recipient
         },
     );
 }

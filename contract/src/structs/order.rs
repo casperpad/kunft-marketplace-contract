@@ -19,4 +19,5 @@ pub struct BuyOrder {
     pub pay_token: Option<ContractHash>,
     pub price: U256,
     pub start_time: Time,
+    pub additional_recipient: Option<Address>,
 }

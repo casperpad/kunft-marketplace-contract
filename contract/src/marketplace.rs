@@ -1,4 +1,4 @@
-use alloc::collections::BTreeMap;
+use alloc::vec;
 use casper_contract::{
     contract_api::{runtime, system},
     unwrap_or_revert::UnwrapOrRevert,
@@ -13,8 +13,8 @@ use crate::{
     data::{self, BuyOrders, DepositPurse, SellOrders},
     event::MarketplaceEvent,
     interfaces::{icep47::ICEP47, ierc20::IERC20},
-    libs::u512_to_u256,
-    structs::order::SellOrder,
+    libs::{u256_to_512, u512_to_u256},
+    structs::order::{BuyOrder, SellOrder},
     Address, Error, Time, TokenId,
 };
 pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
@@ -125,7 +125,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
 
         // Transfer pay token
         self.transfer_with_fee(
-            Address::from(caller),
+            Some(Address::from(caller)),
             order.creator,
             order.pay_token.unwrap(),
             amount,
@@ -144,9 +144,138 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         SellOrders::instance().set(collection, token_id, order);
     }
 
+    fn create_buy_order_cspr(
+        &mut self,
+        caller: Address,
+        collection: ContractHash,
+        token_id: TokenId,
+        additional_recipient: Option<Address>,
+        amount: U512,
+    ) {
+        self.assert_valid_cspr_transfer(amount);
+        let mut bids = BuyOrders::instance().get(collection, token_id);
+
+        if bids.contains_key(&caller) {
+            self.revert(Error::AlreadyExistOrder);
+        }
+
+        let buy_order = BuyOrder {
+            pay_token: None,
+            price: u512_to_u256(&amount).unwrap(),
+            start_time: self.current_block_time(),
+            additional_recipient,
+        };
+        bids.insert(caller, buy_order);
+        BuyOrders::instance().set(collection, token_id, bids);
+    }
+
+    fn create_buy_order(
+        &mut self,
+        caller: Address,
+        collection: ContractHash,
+        token_id: TokenId,
+        additional_recipient: Option<Address>,
+        pay_token: ContractHash,
+        amount: U256,
+    ) {
+        let mut bids = BuyOrders::instance().get(collection, token_id);
+
+        if bids.contains_key(&caller) {
+            self.revert(Error::AlreadyExistOrder);
+        }
+        let allowance = IERC20::new(pay_token).allowance(
+            Address::from(caller),
+            Address::from(self.contract_package_hash()),
+        );
+        if allowance.lt(&amount) {
+            self.revert(Error::InsufficientBalance);
+        }
+        IERC20::new(pay_token).transfer_from(
+            caller,
+            Address::from(self.contract_package_hash()),
+            amount,
+        );
+        let buy_order = BuyOrder {
+            pay_token: Some(pay_token),
+            price: amount,
+            start_time: self.current_block_time(),
+            additional_recipient,
+        };
+        bids.insert(caller, buy_order);
+        BuyOrders::instance().set(collection, token_id, bids);
+    }
+
+    fn cancel_buy_order(&mut self, caller: Address, collection: ContractHash, token_id: TokenId) {
+        let mut bids = BuyOrders::instance().get(collection, token_id);
+
+        match bids.get(&caller) {
+            Some(bid) => match bid.pay_token {
+                Some(contract_hash) => {
+                    IERC20::new(contract_hash).transfer(caller, bid.price);
+                }
+                None => {
+                    self.transfer_cspr(caller, u256_to_512(&bid.price).unwrap());
+                }
+            },
+            None => {
+                self.revert(Error::NotExistOrder);
+            }
+        }
+        bids.remove(&caller);
+        BuyOrders::instance().set(collection, token_id, bids);
+    }
+
+    fn accept_buy_order(
+        &mut self,
+        caller: Address,
+        collection: ContractHash,
+        token_id: TokenId,
+        bidder: Address,
+    ) {
+        let token_owner = ICEP47::new(collection)
+            .owner_of(token_id)
+            .unwrap_or_revert_with(Error::NotExistToken);
+        if caller.ne(&token_owner) {
+            self.revert(Error::NotTokenOwner);
+        }
+
+        let approved = ICEP47::new(collection)
+            .get_approved(caller, token_id)
+            .unwrap_or_revert_with(Error::RequireApprove);
+
+        if !approved.eq(&Address::from(self.contract_package_hash())) {
+            self.revert(Error::RequireApprove);
+        }
+
+        let mut bids = BuyOrders::instance().get(collection, token_id);
+
+        match bids.get(&bidder) {
+            Some(bid) => {
+                let to = match bid.additional_recipient {
+                    Some(address) => address,
+                    None => caller,
+                };
+                match bid.pay_token {
+                    Some(contract_hash) => {
+                        self.transfer_with_fee(None, to, contract_hash, bid.price)
+                    }
+                    None => {
+                        self.transfer_cspr_with_fee(to, u256_to_512(&bid.price).unwrap());
+                    }
+                }
+            }
+            None => {
+                self.revert(Error::NotExistOrder);
+            }
+        }
+        ICEP47::new(collection).transfer_from(caller, bidder, vec![token_id]);
+        bids.remove(&bidder);
+        BuyOrders::instance().set(collection, token_id, bids);
+    }
+
     fn transfer_with_fee(
         &self,
-        from: Address,
+        from: Option<Address>,
         to: Address,
         contract_hash: ContractHash,
         amount: U256,
@@ -165,8 +294,20 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
             .checked_div(fee_denominator)
             .unwrap_or_revert();
         let fee_wallet = self.fee_wallet();
-        IERC20::new(contract_hash).transfer_from(from, to, transfer_amount_to_account);
-        IERC20::new(contract_hash).transfer_from(from, fee_wallet, transfer_amount_to_fee_wallet);
+        match from {
+            Some(address) => {
+                IERC20::new(contract_hash).transfer_from(address, to, transfer_amount_to_account);
+                IERC20::new(contract_hash).transfer_from(
+                    address,
+                    fee_wallet,
+                    transfer_amount_to_fee_wallet,
+                );
+            }
+            None => {
+                IERC20::new(contract_hash).transfer(to, transfer_amount_to_account);
+                IERC20::new(contract_hash).transfer(fee_wallet, transfer_amount_to_fee_wallet);
+            }
+        }
     }
 
     fn transfer_cspr_with_fee(&mut self, account: Address, amount: U512) {

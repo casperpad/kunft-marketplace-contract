@@ -63,8 +63,8 @@ pub struct BuyOrders {
 }
 
 impl BuyOrders {
-    pub fn instance() -> SellOrders {
-        SellOrders {
+    pub fn instance() -> BuyOrders {
+        BuyOrders {
             dict: Dict::instance(BUY_ORDERS_DICT),
         }
     }
@@ -76,7 +76,7 @@ impl BuyOrders {
     pub fn get(&self, contract_hash: ContractHash, token_id: TokenId) -> Bids {
         self.dict
             .get(&contract_hash_and_value_to_str(contract_hash, token_id))
-            .unwrap_or_revert()
+            .unwrap_or_default()
     }
 
     pub fn set(&self, contract_hash: ContractHash, token_id: TokenId, bids: Bids) {

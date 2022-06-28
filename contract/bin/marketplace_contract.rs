@@ -4,14 +4,14 @@
 #[macro_use]
 extern crate alloc;
 
-use alloc::{collections::BTreeSet, string::String};
+use alloc::{boxed::Box, collections::BTreeSet, string::String};
 use casper_contract::{
     contract_api::{runtime, storage},
     unwrap_or_revert::UnwrapOrRevert,
 };
 use casper_types::{
-    runtime_args, CLType, CLTyped, CLValue, ContractHash, ContractPackageHash, EntryPoint,
-    EntryPointAccess, EntryPointType, EntryPoints, Group, Parameter, RuntimeArgs, URef, U256, U512,
+    runtime_args, CLType, CLValue, ContractHash, ContractPackageHash, EntryPoint, EntryPointAccess,
+    EntryPointType, EntryPoints, Group, Parameter, RuntimeArgs, URef, U256, U512,
 };
 use contract_utils::{ContractContext, OnChainContractStorage, ReentrancyGuard};
 use kunftmarketplace_contract::{get_immediate_caller_address, Address, Marketplace, Time};
@@ -69,14 +69,16 @@ pub extern "C" fn buy_sell_order_cspr() {
     };
     let token_id: U256 = runtime::get_named_arg("token_id");
     let amount: U512 = runtime::get_named_arg("amount");
-    let addtional_recipient: Option<Address> = runtime::get_named_arg("addtional_recipient");
+    let additional_recipient: Option<Address> = runtime::get_named_arg("additional_recipient");
+    MarketplaceContract::default().set_reentrancy();
     MarketplaceContract::default().buy_sell_order_cspr(
         caller,
         collection,
         token_id,
         amount,
-        addtional_recipient,
+        additional_recipient,
     );
+    MarketplaceContract::default().clear_reentrancy();
 }
 
 #[no_mangle]
@@ -88,6 +90,79 @@ pub extern "C" fn cancel_sell_order() {
     };
     let token_id: U256 = runtime::get_named_arg("token_id");
     MarketplaceContract::default().cancel_sell_order(caller, collection, token_id);
+}
+
+#[no_mangle]
+pub extern "C" fn create_buy_order_cspr() {
+    let caller = get_immediate_caller_address().unwrap();
+    let collection: ContractHash = {
+        let collection_str: String = runtime::get_named_arg("collection");
+        ContractHash::from_formatted_str(&collection_str).unwrap()
+    };
+    let token_id: U256 = runtime::get_named_arg("token_id");
+    let additional_recipient: Option<Address> = runtime::get_named_arg("additional_recipient");
+    let amount: U512 = runtime::get_named_arg("amount");
+    MarketplaceContract::default().set_reentrancy();
+    MarketplaceContract::default().create_buy_order_cspr(
+        caller,
+        collection,
+        token_id,
+        additional_recipient,
+        amount,
+    );
+    MarketplaceContract::default().clear_reentrancy();
+}
+
+#[no_mangle]
+pub extern "C" fn create_buy_order() {
+    let caller = get_immediate_caller_address().unwrap();
+    let collection: ContractHash = {
+        let collection_str: String = runtime::get_named_arg("collection");
+        ContractHash::from_formatted_str(&collection_str).unwrap()
+    };
+    let token_id: U256 = runtime::get_named_arg("token_id");
+    let additional_recipient: Option<Address> = runtime::get_named_arg("additional_recipient");
+    let pay_token: ContractHash = {
+        let pay_token_str: String = runtime::get_named_arg("pay_token");
+        ContractHash::from_formatted_str(&pay_token_str).unwrap()
+    };
+    let amount: U256 = runtime::get_named_arg("amount");
+
+    MarketplaceContract::default().create_buy_order(
+        caller,
+        collection,
+        token_id,
+        additional_recipient,
+        pay_token,
+        amount,
+    );
+}
+
+#[no_mangle]
+pub extern "C" fn cancel_buy_order() {
+    let caller = get_immediate_caller_address().unwrap();
+    let collection: ContractHash = {
+        let collection_str: String = runtime::get_named_arg("collection");
+        ContractHash::from_formatted_str(&collection_str).unwrap()
+    };
+    let token_id: U256 = runtime::get_named_arg("token_id");
+    MarketplaceContract::default().set_reentrancy();
+    MarketplaceContract::default().cancel_buy_order(caller, collection, token_id);
+    MarketplaceContract::default().clear_reentrancy();
+}
+
+#[no_mangle]
+pub extern "C" fn accept_buy_order() {
+    let caller = get_immediate_caller_address().unwrap();
+    let collection: ContractHash = {
+        let collection_str: String = runtime::get_named_arg("collection");
+        ContractHash::from_formatted_str(&collection_str).unwrap()
+    };
+    let token_id: U256 = runtime::get_named_arg("token_id");
+    let bidder: Address = runtime::get_named_arg("bidder");
+    MarketplaceContract::default().set_reentrancy();
+    MarketplaceContract::default().accept_buy_order(caller, collection, token_id, bidder);
+    MarketplaceContract::default().clear_reentrancy();
 }
 
 #[no_mangle]
@@ -148,7 +223,7 @@ fn get_entry_points() -> EntryPoints {
             Parameter::new("fee", CLType::U8),
             Parameter::new("fee_wallet", CLType::Key),
         ],
-        <()>::cl_type(),
+        CLType::Unit,
         EntryPointAccess::Groups(vec![Group::new("constructor")]),
         EntryPointType::Contract,
     ));
@@ -161,7 +236,7 @@ fn get_entry_points() -> EntryPoints {
             Parameter::new("token_id", CLType::U256),
             Parameter::new("price", CLType::U256),
         ],
-        <()>::cl_type(),
+        CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,
     ));
@@ -173,7 +248,7 @@ fn get_entry_points() -> EntryPoints {
             Parameter::new("token_id", CLType::U256),
             Parameter::new("amount", CLType::U512),
         ],
-        <()>::cl_type(),
+        CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,
     ));
@@ -184,7 +259,63 @@ fn get_entry_points() -> EntryPoints {
             Parameter::new("collection", CLType::String),
             Parameter::new("token_id", CLType::U256),
         ],
-        <()>::cl_type(),
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
+    //
+    entry_points.add_entry_point(EntryPoint::new(
+        "create_buy_order_cspr",
+        vec![
+            Parameter::new("collection", CLType::String),
+            Parameter::new("token_id", CLType::U256),
+            Parameter::new(
+                "additional_recipient",
+                CLType::Option(Box::new(CLType::Key)),
+            ),
+            Parameter::new("amount", CLType::U512),
+        ],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
+    entry_points.add_entry_point(EntryPoint::new(
+        "create_buy_order",
+        vec![
+            Parameter::new("collection", CLType::String),
+            Parameter::new("token_id", CLType::U256),
+            Parameter::new(
+                "additional_recipient",
+                CLType::Option(Box::new(CLType::Key)),
+            ),
+            Parameter::new("pay_token", CLType::String),
+            Parameter::new("amount", CLType::U256),
+        ],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+    entry_points.add_entry_point(EntryPoint::new(
+        "cancel_buy_order",
+        vec![
+            Parameter::new("collection", CLType::String),
+            Parameter::new("token_id", CLType::U256),
+        ],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
+    entry_points.add_entry_point(EntryPoint::new(
+        "accept_buy_order",
+        vec![
+            Parameter::new("collection", CLType::String),
+            Parameter::new("token_id", CLType::U256),
+            Parameter::new("bidder", CLType::Key),
+        ],
+        CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,
     ));
