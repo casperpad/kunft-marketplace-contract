@@ -63,6 +63,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
             token_id,
             pay_token,
             price,
+            start_time,
         })
     }
 

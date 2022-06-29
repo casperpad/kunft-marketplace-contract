@@ -9,6 +9,7 @@ pub enum MarketplaceEvent {
         token_id: TokenId,
         pay_token: Option<ContractHash>,
         price: U256,
+        start_time: Time,
     },
     SellOrderCanceled {
         creator: Address,

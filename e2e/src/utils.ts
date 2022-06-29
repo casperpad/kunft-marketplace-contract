@@ -94,7 +94,7 @@ export const getAccountNamedKeyValue = async (
 ): Promise<string> => {
   // Chain query: get account information.
   const accountInfo = await getAccountInfo(client, publicKey);
-  console.log("accountInfo:", accountInfo);
+  // console.log("accountInfo:", accountInfo);
   // Get value of contract v1 named key.
   const { key: contractHash } = _.find(accountInfo.namedKeys, (i) => {
     return i.name === namedKey;

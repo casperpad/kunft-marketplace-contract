@@ -55,7 +55,7 @@ const deployMarketplace = async () => {
   );
   cep47.setContractHash(nftContractHash);
 
-  const tokenId = "30";
+  const tokenId = "33";
 
   try {
     const index = await cep47.getIndexByToken(KEYS.publicKey, tokenId);

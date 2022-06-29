@@ -28,6 +28,11 @@ export interface MarketplaceInstallArgs {
 
 export enum MarketplaceEvents {
   SellOrderCreated = "SellOrderCreated",
+  SellOrderCanceled = "SellOrderCanceled",
+  SellOrderBought = "SellOrderBought",
+  BuyOrderCreated = "BuyOrderCreated",
+  BuyOrderCanceled = "BuyOrderCanceled",
+  BuyOrderAccepted = "BuyOrderAccepted",
 }
 
 export const MarketplaceEventParser = (
@@ -52,17 +57,22 @@ export const MarketplaceEventParser = (
         );
         const clValue = maybeCLValue.unwrap();
         if (clValue && clValue.clType().tag === CLTypeTag.Map) {
-          // const hash = (clValue as CLMap<CLValue, CLValue>).get(
-          //   CLValueBuilder.string("contract_package_hash")
-          // );
+          const hash = (clValue as CLMap<CLValue, CLValue>).get(
+            CLValueBuilder.string("contract_package_hash")
+          );
+          const preferContractPackageHash = contractPackageHash.startsWith(
+            "hash-"
+          )
+            ? contractPackageHash.slice(5).toLowerCase()
+            : contractPackageHash.toLowerCase();
           const event = (clValue as CLMap<CLValue, CLValue>).get(
             CLValueBuilder.string("event_type")
           );
           if (
-            // hash &&
+            hash &&
             // NOTE: Calling toLowerCase() because current JS-SDK doesn't support checksumed hashes and returns all lower case value
             // Remove it after updating SDK
-            // hash.value() === contractPackageHash.slice(5).toLowerCase() &&
+            hash.value() === preferContractPackageHash &&
             event &&
             eventNames.includes(event.value())
           ) {

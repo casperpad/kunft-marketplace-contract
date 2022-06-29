@@ -154,6 +154,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
             token_id,
             pay_token,
             price,
+            start_time,
         } => {
             let mut param = BTreeMap::new();
             param.insert("contract_package_hash", contract_package_hash.to_string());
@@ -163,6 +164,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
             param.insert("token_id", format!("{}", token_id));
             param.insert("pay_token", format!("{:?}", pay_token));
             param.insert("price", format!("{}", price));
+            param.insert("start_time", format!("{}", start_time));
             events.push(param);
         }
         MarketplaceEvent::SellOrderCanceled {
@@ -187,7 +189,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
         } => {
             let mut param = BTreeMap::new();
             param.insert("contract_package_hash", contract_package_hash.to_string());
-            param.insert("event_type", "SellOrderCreated".to_string());
+            param.insert("event_type", "SellOrderBought".to_string());
             param.insert("creator", format!("{:?}", creator));
             param.insert("collection", collection.to_string());
             param.insert("token_id", format!("{}", token_id));
@@ -206,7 +208,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
         } => {
             let mut param = BTreeMap::new();
             param.insert("contract_package_hash", contract_package_hash.to_string());
-            param.insert("event_type", "SellOrderCreated".to_string());
+            param.insert("event_type", "BuyOrderCreated".to_string());
             param.insert("creator", format!("{:?}", creator));
             param.insert("collection", collection.to_string());
             param.insert("token_id", format!("{}", token_id));
@@ -227,7 +229,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
         } => {
             let mut param = BTreeMap::new();
             param.insert("contract_package_hash", contract_package_hash.to_string());
-            param.insert("event_type", "SellOrderCreated".to_string());
+            param.insert("event_type", "BuyOrderCanceled".to_string());
             param.insert("creator", format!("{:?}", creator));
             param.insert("collection", collection.to_string());
             param.insert("token_id", format!("{}", token_id));
@@ -243,7 +245,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
         } => {
             let mut param = BTreeMap::new();
             param.insert("contract_package_hash", contract_package_hash.to_string());
-            param.insert("event_type", "SellOrderCreated".to_string());
+            param.insert("event_type", "BuyOrderAccepted".to_string());
             param.insert("creator", format!("{:?}", creator));
             param.insert("collection", collection.to_string());
             param.insert("token_id", format!("{}", token_id));
