@@ -74,6 +74,11 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         self.assert_order_is_active(&order);
         ICEP47::new(collection).transfer(caller, vec![token_id]);
         SellOrders::instance().remove(collection, token_id);
+        self.emit(MarketplaceEvent::SellOrderCanceled {
+            creator: order.creator,
+            collection,
+            token_id,
+        });
     }
 
     fn buy_sell_order_cspr(
@@ -107,6 +112,13 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
 
         self.transfer_cspr_with_fee(order.creator, amount);
         SellOrders::instance().set(collection, token_id, order);
+        self.emit(MarketplaceEvent::SellOrderBought {
+            creator: order.creator,
+            collection,
+            token_id,
+            buyer: caller,
+            addtional_recipient,
+        });
     }
 
     fn buy_sell_order(
@@ -149,6 +161,13 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         };
 
         SellOrders::instance().set(collection, token_id, order);
+        self.emit(MarketplaceEvent::SellOrderBought {
+            creator: order.creator,
+            collection,
+            token_id,
+            buyer: caller,
+            addtional_recipient,
+        });
     }
 
     fn create_buy_order_cspr(
@@ -174,6 +193,15 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         };
         bids.insert(caller, buy_order);
         BuyOrders::instance().set(collection, token_id, bids);
+        self.emit(MarketplaceEvent::BuyOrderCreated {
+            creator: caller,
+            collection,
+            token_id,
+            pay_token: buy_order.pay_token,
+            price: buy_order.price,
+            additional_recipient,
+            start_time: buy_order.start_time,
+        });
     }
 
     fn create_buy_order(
@@ -210,26 +238,43 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         };
         bids.insert(caller, buy_order);
         BuyOrders::instance().set(collection, token_id, bids);
+        self.emit(MarketplaceEvent::BuyOrderCreated {
+            creator: caller,
+            collection,
+            token_id,
+            pay_token: buy_order.pay_token,
+            price: buy_order.price,
+            additional_recipient,
+            start_time: buy_order.start_time,
+        });
     }
 
     fn cancel_buy_order(&mut self, caller: Address, collection: ContractHash, token_id: TokenId) {
         let mut bids = BuyOrders::instance().get(collection, token_id);
 
         match bids.get(&caller) {
-            Some(bid) => match bid.pay_token {
-                Some(contract_hash) => {
-                    IERC20::new(contract_hash).transfer(caller, bid.price);
+            Some(bid) => {
+                match bid.pay_token {
+                    Some(contract_hash) => {
+                        IERC20::new(contract_hash).transfer(caller, bid.price);
+                    }
+                    None => {
+                        self.transfer_cspr(caller, u256_to_512(&bid.price).unwrap());
+                    }
                 }
-                None => {
-                    self.transfer_cspr(caller, u256_to_512(&bid.price).unwrap());
-                }
-            },
+                self.emit(MarketplaceEvent::BuyOrderCanceled {
+                    creator: caller,
+                    collection,
+                    token_id,
+                    start_time: bid.start_time,
+                });
+                bids.remove(&caller);
+                BuyOrders::instance().set(collection, token_id, bids);
+            }
             None => {
                 self.revert(Error::NotExistOrder);
             }
         }
-        bids.remove(&caller);
-        BuyOrders::instance().set(collection, token_id, bids);
     }
 
     fn accept_buy_order(
@@ -270,14 +315,20 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
                         self.transfer_cspr_with_fee(to, u256_to_512(&bid.price).unwrap());
                     }
                 }
+                self.emit(MarketplaceEvent::BuyOrderAccepted {
+                    creator: bidder,
+                    collection,
+                    token_id,
+                    start_time: bid.start_time,
+                });
+                ICEP47::new(collection).transfer_from(caller, bidder, vec![token_id]);
+                bids.remove(&bidder);
+                BuyOrders::instance().set(collection, token_id, bids);
             }
             None => {
                 self.revert(Error::NotExistOrder);
             }
         }
-        ICEP47::new(collection).transfer_from(caller, bidder, vec![token_id]);
-        bids.remove(&bidder);
-        BuyOrders::instance().set(collection, token_id, bids);
     }
 
     fn transfer_with_fee(
@@ -431,6 +482,6 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         ContractPackageHash::from(hash_addr)
     }
     fn emit(&mut self, event: MarketplaceEvent) {
-        data::emit(&event);
+        data::emit(&event, self.contract_package_hash());
     }
 }

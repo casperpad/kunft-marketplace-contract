@@ -8,7 +8,7 @@ use casper_contract::{
     contract_api::{runtime, storage, system},
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_types::{ContractHash, Key, URef, U512};
+use casper_types::{ContractHash, ContractPackageHash, Key, URef, U512};
 use contract_utils::{get_key, key_and_value_to_str, set_key, Dict};
 
 use crate::{event::MarketplaceEvent, structs::order::SellOrder, Address, Bids, TokenId};
@@ -145,7 +145,7 @@ pub fn get_fee_wallet() -> Address {
     get_key(FEE_WALLET_KEY).unwrap_or_revert()
 }
 
-pub fn emit(event: &MarketplaceEvent) {
+pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash) {
     let mut events = Vec::new();
     match event {
         MarketplaceEvent::SellOrderCreated {
@@ -156,12 +156,99 @@ pub fn emit(event: &MarketplaceEvent) {
             price,
         } => {
             let mut param = BTreeMap::new();
+            param.insert("contract_package_hash", contract_package_hash.to_string());
             param.insert("event_type", "SellOrderCreated".to_string());
             param.insert("creator", format!("{:?}", creator));
             param.insert("collection", collection.to_string());
             param.insert("token_id", format!("{}", token_id));
             param.insert("pay_token", format!("{:?}", pay_token));
             param.insert("price", format!("{}", price));
+            events.push(param);
+        }
+        MarketplaceEvent::SellOrderCanceled {
+            creator,
+            collection,
+            token_id,
+        } => {
+            let mut param = BTreeMap::new();
+            param.insert("contract_package_hash", contract_package_hash.to_string());
+            param.insert("event_type", "SellOrderCanceled".to_string());
+            param.insert("creator", format!("{:?}", creator));
+            param.insert("collection", collection.to_string());
+            param.insert("token_id", format!("{}", token_id));
+            events.push(param);
+        }
+        MarketplaceEvent::SellOrderBought {
+            creator,
+            collection,
+            token_id,
+            buyer,
+            addtional_recipient,
+        } => {
+            let mut param = BTreeMap::new();
+            param.insert("contract_package_hash", contract_package_hash.to_string());
+            param.insert("event_type", "SellOrderCreated".to_string());
+            param.insert("creator", format!("{:?}", creator));
+            param.insert("collection", collection.to_string());
+            param.insert("token_id", format!("{}", token_id));
+            param.insert("buyer", format!("{:?}", buyer));
+            param.insert("addtional_recipient", format!("{:?}", addtional_recipient));
+            events.push(param);
+        }
+        MarketplaceEvent::BuyOrderCreated {
+            creator,
+            collection,
+            token_id,
+            pay_token,
+            price,
+            additional_recipient,
+            start_time,
+        } => {
+            let mut param = BTreeMap::new();
+            param.insert("contract_package_hash", contract_package_hash.to_string());
+            param.insert("event_type", "SellOrderCreated".to_string());
+            param.insert("creator", format!("{:?}", creator));
+            param.insert("collection", collection.to_string());
+            param.insert("token_id", format!("{}", token_id));
+            param.insert("pay_token", format!("{:?}", pay_token));
+            param.insert("price", format!("{}", price));
+            param.insert(
+                "additional_recipient",
+                format!("{:?}", additional_recipient),
+            );
+            param.insert("start_time", format!("{}", start_time));
+            events.push(param);
+        }
+        MarketplaceEvent::BuyOrderCanceled {
+            creator,
+            collection,
+            token_id,
+            start_time,
+        } => {
+            let mut param = BTreeMap::new();
+            param.insert("contract_package_hash", contract_package_hash.to_string());
+            param.insert("event_type", "SellOrderCreated".to_string());
+            param.insert("creator", format!("{:?}", creator));
+            param.insert("collection", collection.to_string());
+            param.insert("token_id", format!("{}", token_id));
+            param.insert("start_time", format!("{}", start_time));
+
+            events.push(param);
+        }
+        MarketplaceEvent::BuyOrderAccepted {
+            creator,
+            collection,
+            token_id,
+            start_time,
+        } => {
+            let mut param = BTreeMap::new();
+            param.insert("contract_package_hash", contract_package_hash.to_string());
+            param.insert("event_type", "SellOrderCreated".to_string());
+            param.insert("creator", format!("{:?}", creator));
+            param.insert("collection", collection.to_string());
+            param.insert("token_id", format!("{}", token_id));
+            param.insert("start_time", format!("{}", start_time));
+
             events.push(param);
         }
     }
