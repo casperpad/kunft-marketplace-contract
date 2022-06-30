@@ -64,6 +64,9 @@ const startEventStream = async () => {
           MarketplaceEvents.SellOrderCreated,
           MarketplaceEvents.SellOrderCanceled,
           MarketplaceEvents.SellOrderBought,
+          MarketplaceEvents.BuyOrderCreated,
+          MarketplaceEvents.BuyOrderCanceled,
+          MarketplaceEvents.BuyOrderAccepted,
         ],
       },
       event
@@ -88,9 +91,9 @@ const startEventStream = async () => {
         let collectionDB = await Collection.findOne({
           contractHash: collection!.value(),
         });
+        const cep47Client = new CEP47Client(NODE_ADDRESS!, CHAIN_NAME!);
+        cep47Client.setContractHash(collection!.value());
         if (collectionDB === null) {
-          const cep47Client = new CEP47Client(NODE_ADDRESS!, CHAIN_NAME!);
-          cep47Client.setContractHash(collection!.value());
           const name = await cep47Client.name();
           console.log(
             `Creating ${name} collection for ${collection!.value()} contract hash.`
@@ -113,11 +116,11 @@ const startEventStream = async () => {
           console.log(collection!.value());
           throw Error("Not exist token");
         }
+        let formatedCreatorHash = creator!.value();
+        formatedCreatorHash = formatedCreatorHash.slice(20).slice(0, -2);
+        formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
         switch (eventName) {
           case MarketplaceEvents.SellOrderCreated: {
-            let formatedCreatorHash = creator!.value();
-            formatedCreatorHash = formatedCreatorHash.slice(20).slice(0, -2);
-            formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
             const user = await User.findOne({
               accountHash: formatedCreatorHash,
             });
@@ -137,10 +140,6 @@ const startEventStream = async () => {
             break;
           }
           case MarketplaceEvents.SellOrderCanceled: {
-            let formatedCreatorHash = creator!.value();
-            formatedCreatorHash = formatedCreatorHash.slice(20).slice(0, -2);
-            formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
-
             await SellOrder.findOneAndUpdate(
               {
                 creator: formatedCreatorHash,
@@ -152,10 +151,6 @@ const startEventStream = async () => {
             break;
           }
           case MarketplaceEvents.SellOrderBought: {
-            let formatedCreatorHash = creator!.value();
-            formatedCreatorHash = formatedCreatorHash.slice(20).slice(0, -2);
-            formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
-
             await SellOrder.findOneAndUpdate(
               {
                 creator: formatedCreatorHash,
@@ -163,6 +158,47 @@ const startEventStream = async () => {
                 startTime: startTime!.value(),
               },
               { status: "succeed" }
+            );
+            break;
+          }
+          case MarketplaceEvents.BuyOrderCreated: {
+            const owner = await cep47Client.getOwnerOf(tokenId!.value());
+            const buyOrder = new BuyOrder({
+              creator: formatedCreatorHash,
+              asset,
+              owner,
+              payToken: payToken!.value(),
+              price: price!.value(),
+              startTime: startTime!.value(),
+              additionalRecipient: additionalRecipient!.value(),
+              status: "pending",
+            });
+            await buyOrder.save();
+            break;
+          }
+          case MarketplaceEvents.BuyOrderCanceled: {
+            BuyOrder.findOneAndUpdate(
+              {
+                creator: formatedCreatorHash,
+                asset,
+                startTime: startTime!.value(),
+              },
+              {
+                status: "canceled",
+              }
+            );
+            break;
+          }
+          case MarketplaceEvents.BuyOrderAccepted: {
+            BuyOrder.findOneAndUpdate(
+              {
+                creator: formatedCreatorHash,
+                asset,
+                startTime: startTime!.value(),
+              },
+              {
+                status: "succeed",
+              }
             );
             break;
           }

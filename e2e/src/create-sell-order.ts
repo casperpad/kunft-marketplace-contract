@@ -107,11 +107,12 @@ const deployMarketplace = async () => {
   const formatedContractHash = `contract-${nftContractHash.slice(5)}`;
   const price = "50000000000";
   marketplace.setContractHash(contractHash);
+  const tokens = new Map<BigNumberish, BigNumberish>([]);
+  tokens.set(tokenId, price);
   const deploy = marketplace.createSellOrder(
     Date.now(),
     formatedContractHash,
-    tokenId,
-    price,
+    tokens,
     KEYS,
     "2500000000"
   );

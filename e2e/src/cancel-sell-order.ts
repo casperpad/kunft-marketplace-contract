@@ -62,7 +62,7 @@ const testCancelSellOrder = async () => {
   marketplace.setContractHash(contractHash);
   const deploy = marketplace.cancelSellOrder(
     formatedContractHash,
-    tokenId,
+    [tokenId],
     KEYS,
     "2500000000"
   );
