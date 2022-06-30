@@ -2,8 +2,10 @@ import { Schema, model } from "mongoose";
 
 interface IUser {
   name: string;
-  id: string;
+  email?: string;
   accountHash: string;
+  nonce: string;
+  // role:"user"|"minter"|"admin"
 }
 
 const userSchema = new Schema<IUser>({
@@ -11,9 +13,8 @@ const userSchema = new Schema<IUser>({
     type: String,
     required: true,
   },
-  id: {
+  email: {
     type: String,
-    required: true,
     unique: true,
     dropDups: true,
   },
@@ -24,3 +25,7 @@ const userSchema = new Schema<IUser>({
     dropDups: true,
   },
 });
+
+const User = model<IUser>("User", userSchema);
+
+export default User;

@@ -1,20 +1,31 @@
 import { Schema, model } from "mongoose";
 
-interface ICollectionNFT {
+interface ICollection {
+  contractPackageHash: string;
   contractHash: string;
   slug: string;
   name: string;
   symbol: string;
   description: string;
   image: string;
-  twitter: string;
-  discord: string;
-  website: string;
-  categories: any[];
+  twitter?: string;
+  discord?: string;
+  website?: string;
 }
 
-const collectionNFTSchema = new Schema<ICollectionNFT>({
-  contractHash: { type: String, required: true, unique: true, dropDups: true },
+const collectionSchema = new Schema<ICollection>({
+  contractPackageHash: {
+    type: String,
+    required: true,
+    unique: true,
+    dropDups: true,
+  },
+  contractHash: {
+    type: String,
+    required: true,
+    unique: true,
+    dropDups: true,
+  },
   slug: { type: String, required: true, unique: true, dropDups: true },
   symbol: { type: String, required: true },
   name: { type: String, required: true },
@@ -25,9 +36,6 @@ const collectionNFTSchema = new Schema<ICollectionNFT>({
   website: { type: String },
 });
 
-const CollectionNFT = model<ICollectionNFT>(
-  "CollectionNFT",
-  collectionNFTSchema
-);
+const Collection = model<ICollection>("Collection", collectionSchema);
 
-export default CollectionNFT;
+export default Collection;

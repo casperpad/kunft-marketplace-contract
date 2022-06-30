@@ -13,9 +13,10 @@ import {
   CLTypeTag,
   CLStringType,
   CLKeyType,
+  encodeBase16,
 } from "casper-js-sdk";
 import { BigNumberish } from "@ethersproject/bignumber";
-import { Ok, Err, Some, None } from "ts-results";
+import { Some, None } from "ts-results";
 import { types } from "casper-js-client-helper";
 
 const { Contract, toCLMap, fromCLMap } = Contracts;
@@ -201,13 +202,20 @@ export class MarketplaceClient {
         : CLValueBuilder.option(None, new CLKeyType()),
     });
     return this.contractClient.callEntrypoint(
-      "cancel_sell_order",
+      "buy_sell_order",
       runtimeArgs,
       key.publicKey,
       this.networkName,
       paymentAmount,
       [key]
     );
+  }
+
+  public async feeWallet() {
+    const result = (await this.contractClient.queryContractData([
+      "fee_wallet",
+    ])) as CLValue;
+    return encodeBase16(result.value());
   }
 
   public createBuyOrder(

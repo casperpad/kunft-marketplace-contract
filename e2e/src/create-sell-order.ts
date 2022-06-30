@@ -55,7 +55,7 @@ const deployMarketplace = async () => {
   );
   cep47.setContractHash(nftContractHash);
 
-  const tokenId = "33";
+  const tokenId = "41";
 
   try {
     const index = await cep47.getIndexByToken(KEYS.publicKey, tokenId);
@@ -105,13 +105,13 @@ const deployMarketplace = async () => {
   }
 
   const formatedContractHash = `contract-${nftContractHash.slice(5)}`;
-
+  const price = "50000000000";
   marketplace.setContractHash(contractHash);
   const deploy = marketplace.createSellOrder(
     Date.now(),
     formatedContractHash,
     tokenId,
-    50,
+    price,
     KEYS,
     "2500000000"
   );

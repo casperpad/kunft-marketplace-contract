@@ -27,6 +27,9 @@ import {
 import { getAccountNamedKeyValue } from "./utils";
 import BuyOrder from "./schema/buyoder.model";
 import SellOrder from "./schema/sellOrder.model";
+import Collection from "./schema/collection.model";
+import Asset from "./schema/asset.model";
+import User from "./schema/user.model";
 
 const {
   EVENT_STREAM_ADDRESS,
@@ -56,7 +59,11 @@ const startEventStream = async () => {
     const parsedEvents = MarketplaceEventParser(
       {
         contractPackageHash: contractPackageHash.slice(5),
-        eventNames: [MarketplaceEvents.SellOrderCreated],
+        eventNames: [
+          MarketplaceEvents.SellOrderCreated,
+          MarketplaceEvents.SellOrderCanceled,
+          MarketplaceEvents.SellOrderBought,
+        ],
       },
       event
     );
@@ -77,18 +84,31 @@ const startEventStream = async () => {
         const additionalRecipient = eventParams.get(
           CLValueBuilder.string("additional_recipient")
         );
+        const collectionDB = await Collection.findOne({
+          contractHash: collection!.value(),
+        });
         switch (eventName) {
-          case MarketplaceEvents.SellOrderCreated:
-            const order = await SellOrder.findOne({
-              creator: creator!.value(),
-              contractHash: collection!.value(),
+          case MarketplaceEvents.SellOrderCreated: {
+            const asset = await Asset.findOne({
+              collectionNFT: collectionDB,
               tokenId: tokenId!.value(),
             });
-            if (order) break;
+            if (asset === null) {
+              console.log(collection!.value());
+              throw Error("Not exist token");
+            }
+            let formatedCreatorHash = creator!.value();
+            formatedCreatorHash = formatedCreatorHash.slice(20).slice(0, -2);
+            formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
+            const user = await User.findOne({
+              accountHash: formatedCreatorHash,
+            });
+            if (user === null) {
+              throw Error(`Not exist user ${formatedCreatorHash}`);
+            }
             const sellOrder = new SellOrder({
-              creator: creator!.value(),
-              contractHash: collection!.value(),
-              tokenId: tokenId!.value(),
+              creator: user,
+              asset,
               payToken:
                 payToken!.value() === "None" ? undefined : payToken!.value(),
               price: price!.value(),
@@ -97,30 +117,61 @@ const startEventStream = async () => {
             });
             await sellOrder.save();
             break;
-          case MarketplaceEvents.SellOrderCanceled:
+          }
+          case MarketplaceEvents.SellOrderCanceled: {
+            const asset = await Asset.findOne({
+              collectionNFT: collectionDB,
+              tokenId: tokenId!.value(),
+            });
+            if (asset === null) {
+              console.log(collection!.value());
+              throw Error("Not exist token");
+            }
+            let formatedCreatorHash = creator!.value();
+            formatedCreatorHash = formatedCreatorHash.slice(20).slice(0, -2);
+            formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
+            const user = await User.findOne({
+              accountHash: formatedCreatorHash,
+            });
+            if (user === null) {
+              throw Error(`Not exist user ${formatedCreatorHash}`);
+            }
             await SellOrder.findOneAndUpdate(
               {
-                creator: creator!.value(),
-                contractHash: collection!.value(),
-                tokenId: tokenId!.value(),
+                creator: user,
+                asset,
               },
               { status: "canceled" }
             );
             break;
-          case MarketplaceEvents.SellOrderBought:
+          }
+          case MarketplaceEvents.SellOrderBought: {
+            const asset = await Asset.findOne({
+              collectionNFT: collectionDB,
+              tokenId: tokenId!.value(),
+            });
+            if (asset === null) {
+              console.log(collection!.value());
+              throw Error("Not exist token");
+            }
+            let formatedCreatorHash = creator!.value();
+            formatedCreatorHash = formatedCreatorHash.slice(20).slice(0, -2);
+            formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
+            const user = await User.findOne({
+              accountHash: formatedCreatorHash,
+            });
+            if (user === null) {
+              throw Error(`Not exist user ${formatedCreatorHash}`);
+            }
             await SellOrder.findOneAndUpdate(
               {
-                creator: creator!.value(),
-                contractHash: collection!.value(),
-                tokenId: tokenId!.value(),
+                creator: user,
+                asset,
               },
-              {
-                buyer: buyer!.value(),
-                additionalRecipient: additionalRecipient!.value(),
-                status: "succed",
-              }
+              { status: "succeed" }
             );
             break;
+          }
           default:
             console.error(`Unhandled event: ${eventName}`);
         }
