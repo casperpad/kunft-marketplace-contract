@@ -68,6 +68,8 @@ const startEventStream = async () => {
   if (collection === null) {
     collection = new Collection({
       contractPackageHash: contractPackageHash.slice(5),
+      contractHash: contractHash.slice(5),
+      verified: true,
       slug: CE47_CONTRACT_NAME!,
       name: CEP47_TOKEN_NAME!,
       symbol: CEP47_TOKEN_SYMBOL!,

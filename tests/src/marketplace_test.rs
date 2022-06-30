@@ -1,4 +1,6 @@
-use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs, U256, U512};
+use casper_types::{
+    account::AccountHash, runtime_args, ContractHash, Key, RuntimeArgs, U256, U512,
+};
 use kunftmarketplace_contract::Address;
 use std::{collections::BTreeMap, path::PathBuf, vec};
 use test_env::{utils::DeploySource, TestEnv};
@@ -54,16 +56,6 @@ fn deploy() -> (TestEnv, TestContext, AccountHash) {
     let env = TestEnv::new();
     let owner = env.next_user();
 
-    let marketplace = MarketplaceInstance::new(
-        &env,
-        "kunft_marketplace",
-        owner,
-        250u8,
-        Address::from(owner),
-    );
-
-    let nft = CEP47Instance::new(&env, "kunft", owner, "KUNFT", "KNFT", meta::contract_meta());
-
     let erc20 = ERC20Instance::new(
         &env,
         "USDT",
@@ -72,6 +64,21 @@ fn deploy() -> (TestEnv, TestContext, AccountHash) {
         9,
         U256::from(10_000u64).checked_mul(U256::exp10(9)).unwrap(),
     );
+
+    let mut acceptable_tokens: BTreeMap<String, u32> = BTreeMap::new();
+    let null_contract_hash = ContractHash::new([0u8; 32]);
+    acceptable_tokens.insert(null_contract_hash.to_formatted_string(), 1000);
+    acceptable_tokens.insert(erc20.contract_hash().to_formatted_string(), 500);
+
+    let marketplace = MarketplaceInstance::new(
+        &env,
+        "kunft_marketplace",
+        owner,
+        acceptable_tokens,
+        Address::from(owner),
+    );
+
+    let nft = CEP47Instance::new(&env, "kunft", owner, "KUNFT", "KNFT", meta::contract_meta());
 
     let test_context = TestContext {
         marketplace,
@@ -91,48 +98,73 @@ fn should_deploy() {
 fn should_create_sell_order_and_buy_cspr() {
     let (env, test_context, owner) = deploy();
     let user = env.next_user();
-    let token_id = TokenId::zero();
+    let token_0 = TokenId::zero();
+    let token_1 = TokenId::one();
     let token_meta = meta::red_dragon();
     let nft = test_context.nft;
     let marketplace = test_context.marketplace;
-    nft.mint_one(owner, user, token_id, token_meta.clone());
+
+    nft.mint_copies(owner, user, vec![token_0, token_1], token_meta.clone(), 2);
 
     nft.approve(
         user,
         Address::from(marketplace.contract_package_hash()),
-        vec![token_id],
+        vec![token_0, token_1],
     );
 
     let pay_token: Option<String> = None;
-    let price = U256::one();
+    let price_0 = U256::from(50u8).checked_mul(U256::exp10(9)).unwrap();
+    let price_1 = U256::from(100u8).checked_mul(U256::exp10(9)).unwrap();
+    let mut tokens: BTreeMap<TokenId, U256> = BTreeMap::new();
+    tokens.insert(token_0, price_0);
+    tokens.insert(token_1, price_1);
     marketplace.create_sell_order(
         user,
         0u64,
         nft.contract_hash().to_formatted_string(),
-        token_id,
+        tokens,
         pay_token,
-        price,
     );
 
-    // buy nft
-    let buyer = env.next_user();
+    // buy token 0
+    let buyer_0 = env.next_user();
     let session_code = PathBuf::from(PER_BUY_SELL_ORDER_CSPR_WASM);
-    let price_u512 = U512::one();
+    let price_u512_0 = U512::from(50u8).checked_mul(U512::exp10(9)).unwrap();
     let additional_recipient: Option<Address> = None;
     env.run(
-        buyer,
+        buyer_0,
         DeploySource::Code(session_code),
         runtime_args! {
             "marketplace_contract" => marketplace.contract_hash().to_formatted_string(),
             "collection" => nft.contract_hash().to_formatted_string(),
-            "token_id" => token_id,
-            "amount" => price_u512,
+            "token_id" => token_0,
+            "amount" => price_u512_0,
             "additional_recipient" => additional_recipient
         },
     );
 
-    let nft_owner = nft.owner_of(token_id).unwrap();
-    assert_eq!(nft_owner, Key::from(buyer));
+    let nft_owner = nft.owner_of(token_0).unwrap();
+    assert_eq!(nft_owner, Key::from(buyer_0));
+
+    // buy token 1
+    let buyer_1 = env.next_user();
+    let session_code = PathBuf::from(PER_BUY_SELL_ORDER_CSPR_WASM);
+    let price_u512_1 = U512::from(100u8).checked_mul(U512::exp10(9)).unwrap();
+    let additional_recipient: Option<Key> = Some(Key::from(env.next_user()));
+    env.run(
+        buyer_1,
+        DeploySource::Code(session_code),
+        runtime_args! {
+            "marketplace_contract" => marketplace.contract_hash().to_formatted_string(),
+            "collection" => nft.contract_hash().to_formatted_string(),
+            "token_id" => token_1,
+            "amount" => price_u512_1,
+            "additional_recipient" => additional_recipient
+        },
+    );
+
+    let nft_owner = nft.owner_of(token_1).unwrap();
+    assert_eq!(nft_owner, additional_recipient.unwrap());
 }
 
 #[test]
@@ -156,13 +188,14 @@ fn should_create_sell_order_and_buy() {
 
     let pay_token: Option<String> = None;
     let price = U256::one();
+    let mut tokens: BTreeMap<TokenId, U256> = BTreeMap::new();
+    tokens.insert(token_id, price);
     marketplace.create_sell_order(
         user,
         0u64,
         nft.contract_hash().to_formatted_string(),
-        token_id,
+        tokens,
         pay_token,
-        price,
     );
 }
 
@@ -184,20 +217,25 @@ fn should_create_sell_order_and_cancel() {
 
     let pay_token: Option<String> = None;
     let price = U256::one();
+    let mut tokens: BTreeMap<TokenId, U256> = BTreeMap::new();
+    tokens.insert(token_id, price);
     marketplace.create_sell_order(
         user,
         0u64,
         nft.contract_hash().to_formatted_string(),
-        token_id,
+        tokens,
         pay_token,
-        price,
     );
 
     let mut token_owner = nft.owner_of(token_id).unwrap();
 
     assert_eq!(token_owner, Key::from(marketplace.contract_package_hash()));
 
-    marketplace.cancel_sell_order(user, nft.contract_hash().to_formatted_string(), token_id);
+    marketplace.cancel_sell_order(
+        user,
+        nft.contract_hash().to_formatted_string(),
+        vec![token_id],
+    );
     token_owner = nft.owner_of(token_id).unwrap();
     assert_eq!(token_owner, Key::from(user));
 }

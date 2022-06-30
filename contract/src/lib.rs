@@ -16,7 +16,6 @@ pub type Time = u64;
 pub type TokenId = U256;
 pub type Token = (ContractHash, TokenId);
 pub type Bids = BTreeMap<Address, BuyOrder>;
-pub type AcceptableToken = BTreeMap<ContractHash, U256>;
 pub use enums::Address;
 pub use libs::address_utils::get_immediate_caller_address;
 pub use marketplace::Marketplace;

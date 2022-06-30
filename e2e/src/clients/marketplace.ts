@@ -14,6 +14,10 @@ import {
   CLStringType,
   CLKeyType,
   encodeBase16,
+  CLU64,
+  CLString,
+  CLU64Type,
+  CLU32Type,
 } from "casper-js-sdk";
 import { BigNumberish } from "@ethersproject/bignumber";
 import { Some, None } from "ts-results";
@@ -24,6 +28,7 @@ type RecipientType = types.RecipientType;
 
 export interface MarketplaceInstallArgs {
   feeWallet: RecipientType;
+  acceptableTokens: Map<string, number>;
   contractName: string;
 }
 
@@ -106,12 +111,18 @@ export class MarketplaceClient {
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[]
   ) {
+    const acceptable_tokens = new CLMap([new CLStringType(), new CLU32Type()]);
+    Array.from(args.acceptableTokens.entries()).forEach((entry) => {
+      acceptable_tokens.set(
+        CLValueBuilder.string(entry[0]),
+        CLValueBuilder.u32(entry[1])
+      );
+    });
     const runtimeArgs = RuntimeArgs.fromMap({
       fee_wallet: args.feeWallet,
-      fee: CLValueBuilder.u8(250),
+      acceptable_tokens,
       contract_name: CLValueBuilder.string(args.contractName),
     });
-
     return this.contractClient.install(
       wasm,
       runtimeArgs,

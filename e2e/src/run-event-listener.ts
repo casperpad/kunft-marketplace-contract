@@ -32,9 +32,10 @@ import Asset from "./schema/asset.model";
 import User from "./schema/user.model";
 
 const {
+  NODE_ADDRESS,
+  CHAIN_NAME,
   EVENT_STREAM_ADDRESS,
   MONGODB_URL,
-  NODE_ADDRESS,
   MARKETPLACE_CONTRACT_NAME,
   MASTER_KEY_PAIR_PATH,
 } = process.env;
@@ -84,19 +85,36 @@ const startEventStream = async () => {
         const additionalRecipient = eventParams.get(
           CLValueBuilder.string("additional_recipient")
         );
-        const collectionDB = await Collection.findOne({
+        let collectionDB = await Collection.findOne({
           contractHash: collection!.value(),
         });
+        if (collectionDB === null) {
+          const cep47Client = new CEP47Client(NODE_ADDRESS!, CHAIN_NAME!);
+          cep47Client.setContractHash(collection!.value());
+          const name = await cep47Client.name();
+          console.log(
+            `Creating ${name} collection for ${collection!.value()} contract hash.`
+          );
+          const symbol = await cep47Client.symbol();
+          collectionDB = new Collection({
+            contractHash: collection!.value(),
+            slug: collection!.value(),
+            name,
+            symbol,
+            verified: false,
+          });
+          await collectionDB.save();
+        }
+        const asset = await Asset.findOne({
+          collectionNFT: collectionDB,
+          tokenId: tokenId!.value(),
+        });
+        if (asset === null) {
+          console.log(collection!.value());
+          throw Error("Not exist token");
+        }
         switch (eventName) {
           case MarketplaceEvents.SellOrderCreated: {
-            const asset = await Asset.findOne({
-              collectionNFT: collectionDB,
-              tokenId: tokenId!.value(),
-            });
-            if (asset === null) {
-              console.log(collection!.value());
-              throw Error("Not exist token");
-            }
             let formatedCreatorHash = creator!.value();
             formatedCreatorHash = formatedCreatorHash.slice(20).slice(0, -2);
             formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
@@ -119,54 +137,30 @@ const startEventStream = async () => {
             break;
           }
           case MarketplaceEvents.SellOrderCanceled: {
-            const asset = await Asset.findOne({
-              collectionNFT: collectionDB,
-              tokenId: tokenId!.value(),
-            });
-            if (asset === null) {
-              console.log(collection!.value());
-              throw Error("Not exist token");
-            }
             let formatedCreatorHash = creator!.value();
             formatedCreatorHash = formatedCreatorHash.slice(20).slice(0, -2);
             formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
-            const user = await User.findOne({
-              accountHash: formatedCreatorHash,
-            });
-            if (user === null) {
-              throw Error(`Not exist user ${formatedCreatorHash}`);
-            }
+
             await SellOrder.findOneAndUpdate(
               {
-                creator: user,
+                creator: formatedCreatorHash,
                 asset,
+                startTime: startTime!.value(),
               },
               { status: "canceled" }
             );
             break;
           }
           case MarketplaceEvents.SellOrderBought: {
-            const asset = await Asset.findOne({
-              collectionNFT: collectionDB,
-              tokenId: tokenId!.value(),
-            });
-            if (asset === null) {
-              console.log(collection!.value());
-              throw Error("Not exist token");
-            }
             let formatedCreatorHash = creator!.value();
             formatedCreatorHash = formatedCreatorHash.slice(20).slice(0, -2);
             formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
-            const user = await User.findOne({
-              accountHash: formatedCreatorHash,
-            });
-            if (user === null) {
-              throw Error(`Not exist user ${formatedCreatorHash}`);
-            }
+
             await SellOrder.findOneAndUpdate(
               {
-                creator: user,
+                creator: formatedCreatorHash,
                 asset,
+                startTime: startTime!.value(),
               },
               { status: "succeed" }
             );

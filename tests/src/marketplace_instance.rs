@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use casper_types::{
     account::AccountHash, bytesrepr::FromBytes, runtime_args, CLTyped, ContractHash,
     ContractPackageHash, Key, RuntimeArgs, U256,
@@ -14,7 +16,7 @@ impl MarketplaceInstance {
         env: &TestEnv,
         contract_name: &str,
         sender: AccountHash,
-        fee: u8,
+        acceptable_tokens: BTreeMap<String, u32>,
         fee_wallet: Address,
     ) -> MarketplaceInstance {
         MarketplaceInstance(TestContract::new(
@@ -23,7 +25,7 @@ impl MarketplaceInstance {
             contract_name,
             sender,
             runtime_args! {
-                "fee" => fee,
+                "acceptable_tokens" => acceptable_tokens,
                 "fee_wallet" => fee_wallet
             },
         ))
@@ -34,9 +36,8 @@ impl MarketplaceInstance {
         sender: AccountHash,
         start_time: Time,
         collection: String,
-        token_id: U256,
+        tokens: BTreeMap<TokenId, U256>,
         pay_token: Option<String>,
-        price: U256,
     ) {
         self.0.call_contract(
             sender,
@@ -44,20 +45,24 @@ impl MarketplaceInstance {
             runtime_args! {
                 "start_time" => start_time,
                 "collection" => collection,
-                "token_id" => token_id,
+                "tokens" => tokens,
                 "pay_token" => pay_token,
-                "price" => price,
             },
         )
     }
 
-    pub fn cancel_sell_order(&self, sender: AccountHash, collection: String, token_id: U256) {
+    pub fn cancel_sell_order(
+        &self,
+        sender: AccountHash,
+        collection: String,
+        token_ids: Vec<TokenId>,
+    ) {
         self.0.call_contract(
             sender,
             "cancel_sell_order",
             runtime_args! {
                 "collection" => collection,
-                "token_id" => token_id,
+                "token_ids" => token_ids,
             },
         )
     }

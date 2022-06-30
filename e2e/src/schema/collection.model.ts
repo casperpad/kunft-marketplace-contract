@@ -6,8 +6,9 @@ interface ICollection {
   slug: string;
   name: string;
   symbol: string;
-  description: string;
-  image: string;
+  description?: string;
+  verified: boolean;
+  image?: string;
   twitter?: string;
   discord?: string;
   website?: string;
@@ -18,7 +19,6 @@ const collectionSchema = new Schema<ICollection>({
     type: String,
     required: true,
     unique: true,
-    dropDups: true,
   },
   contractHash: {
     type: String,
@@ -29,8 +29,9 @@ const collectionSchema = new Schema<ICollection>({
   slug: { type: String, required: true, unique: true, dropDups: true },
   symbol: { type: String, required: true },
   name: { type: String, required: true },
-  description: { type: String, required: true },
-  image: { type: String, required: true },
+  description: { type: String },
+  verified: { type: Boolean, required: true },
+  image: { type: String },
   twitter: { type: String },
   discord: { type: String },
   website: { type: String },

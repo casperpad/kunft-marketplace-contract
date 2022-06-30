@@ -13,11 +13,13 @@ pub enum MarketplaceEvent {
     },
     SellOrderCanceled {
         creator: Address,
+        start_time: Time,
         collection: ContractHash,
         token_id: TokenId,
     },
     SellOrderBought {
         creator: Address,
+        start_time: Time,
         collection: ContractHash,
         token_id: TokenId,
         buyer: Address,
@@ -43,5 +45,12 @@ pub enum MarketplaceEvent {
         collection: ContractHash,
         token_id: TokenId,
         start_time: Time,
+    },
+    AcceptableTokenAdded {
+        contract_hash: ContractHash,
+        fee: u32,
+    },
+    AcceptableTokenRemoved {
+        contract_hash: ContractHash,
     },
 }

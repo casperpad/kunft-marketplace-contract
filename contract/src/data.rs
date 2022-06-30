@@ -8,13 +8,18 @@ use casper_contract::{
     contract_api::{runtime, storage, system},
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_types::{ContractHash, ContractPackageHash, Key, URef, U512};
-use contract_utils::{get_key, key_and_value_to_str, set_key, Dict};
+use casper_types::{
+    bytesrepr::ToBytes, CLTyped, ContractHash, ContractPackageHash, Key, URef, U512,
+};
+use contract_utils::{get_key, key_and_value_to_str, key_to_str, set_key, Dict};
 
-use crate::{event::MarketplaceEvent, structs::order::SellOrder, Address, Bids, TokenId};
+use crate::{event::MarketplaceEvent, structs::order::SellOrder, Address, Bids, Error, TokenId};
 
-fn contract_hash_and_value_to_str(contract_hash: ContractHash, created_time: TokenId) -> String {
-    key_and_value_to_str(&Key::from(contract_hash), &created_time)
+fn contract_hash_and_value_to_str<T: ToBytes + CLTyped>(
+    contract_hash: ContractHash,
+    value: T,
+) -> String {
+    key_and_value_to_str(&Key::from(contract_hash), &value)
 }
 
 const SELL_ORDERS_DICT: &str = "sell_orders";
@@ -125,14 +130,37 @@ impl DepositPurse {
     }
 }
 
-const FEE_KEY: &str = "fee";
+const ACCEPTABLE_TOKENS_DICT: &str = "acceptable_tokens";
 
-pub fn set_fee(fee: u8) {
-    set_key(FEE_KEY, fee);
+pub struct AcceptableTokens {
+    dict: Dict,
 }
 
-pub fn get_fee() -> u8 {
-    get_key(FEE_KEY).unwrap_or_revert()
+impl AcceptableTokens {
+    pub fn instance() -> AcceptableTokens {
+        AcceptableTokens {
+            dict: Dict::instance(ACCEPTABLE_TOKENS_DICT),
+        }
+    }
+
+    pub fn init() {
+        Dict::init(ACCEPTABLE_TOKENS_DICT)
+    }
+
+    pub fn get(&self, contract_hash: ContractHash) -> u32 {
+        self.dict
+            .get(&key_to_str(&Key::from(contract_hash)))
+            .unwrap_or_revert_with(Error::NotAcceptableToken)
+    }
+
+    pub fn set(&self, contract_hash: ContractHash, fee: u32) {
+        self.dict.set(&key_to_str(&Key::from(contract_hash)), fee)
+    }
+
+    pub fn remove(&self, contract_hash: ContractHash) {
+        self.dict
+            .remove::<u32>(&key_to_str(&Key::from(contract_hash)))
+    }
 }
 
 const FEE_WALLET_KEY: &str = "fee_wallet";
@@ -171,6 +199,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
             creator,
             collection,
             token_id,
+            start_time,
         } => {
             let mut param = BTreeMap::new();
             param.insert("contract_package_hash", contract_package_hash.to_string());
@@ -178,6 +207,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
             param.insert("creator", format!("{:?}", creator));
             param.insert("collection", collection.to_string());
             param.insert("token_id", format!("{}", token_id));
+            param.insert("start_time", format!("{}", start_time));
             events.push(param);
         }
         MarketplaceEvent::SellOrderBought {
@@ -186,6 +216,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
             token_id,
             buyer,
             addtional_recipient,
+            start_time,
         } => {
             let mut param = BTreeMap::new();
             param.insert("contract_package_hash", contract_package_hash.to_string());
@@ -195,6 +226,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
             param.insert("token_id", format!("{}", token_id));
             param.insert("buyer", format!("{:?}", buyer));
             param.insert("addtional_recipient", format!("{:?}", addtional_recipient));
+            param.insert("start_time", format!("{}", start_time));
             events.push(param);
         }
         MarketplaceEvent::BuyOrderCreated {
@@ -250,6 +282,20 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
             param.insert("collection", collection.to_string());
             param.insert("token_id", format!("{}", token_id));
             param.insert("start_time", format!("{}", start_time));
+
+            events.push(param);
+        }
+        MarketplaceEvent::AcceptableTokenAdded { contract_hash, fee } => {
+            let mut param = BTreeMap::new();
+            param.insert("contract_package_hash", contract_package_hash.to_string());
+            param.insert("contract_hash", contract_hash.to_string());
+            param.insert("fee", format!("{}", fee));
+            events.push(param);
+        }
+        MarketplaceEvent::AcceptableTokenRemoved { contract_hash } => {
+            let mut param = BTreeMap::new();
+            param.insert("contract_package_hash", contract_package_hash.to_string());
+            param.insert("contract_hash", contract_hash.to_string());
 
             events.push(param);
         }

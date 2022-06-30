@@ -5,8 +5,7 @@ interface IAsset {
   tokenId: string;
   image: string;
   name: string;
-  mintDate: number;
-  owner: Schema.Types.ObjectId;
+  owner: string;
   metadata: string;
 }
 
@@ -27,13 +26,8 @@ const nftSchema = new Schema<IAsset>({
     type: String,
     required: true,
   },
-  mintDate: {
-    type: Number,
-    required: true,
-  },
   owner: {
-    type: Schema.Types.ObjectId,
-    ref: "User",
+    type: String,
   },
   metadata: {
     type: String,

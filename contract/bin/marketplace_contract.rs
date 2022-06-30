@@ -4,17 +4,24 @@
 #[macro_use]
 extern crate alloc;
 
-use alloc::{boxed::Box, collections::BTreeSet, string::String};
+use alloc::{
+    boxed::Box,
+    collections::{BTreeMap, BTreeSet},
+    string::String,
+    vec::Vec,
+};
 use casper_contract::{
     contract_api::{runtime, storage},
     unwrap_or_revert::UnwrapOrRevert,
 };
 use casper_types::{
     runtime_args, CLType, CLValue, ContractHash, ContractPackageHash, EntryPoint, EntryPointAccess,
-    EntryPointType, EntryPoints, Group, Parameter, RuntimeArgs, URef, U256, U512,
+    EntryPointType, EntryPoints, Group, Key, Parameter, RuntimeArgs, URef, U256, U512,
 };
-use contract_utils::{ContractContext, OnChainContractStorage, ReentrancyGuard};
-use kunftmarketplace_contract::{get_immediate_caller_address, Address, Marketplace, Time};
+use contract_utils::{AdminControl, ContractContext, OnChainContractStorage, ReentrancyGuard};
+use kunftmarketplace_contract::{
+    get_immediate_caller_address, Address, Marketplace, Time, TokenId,
+};
 
 #[derive(Default)]
 struct MarketplaceContract(OnChainContractStorage);
@@ -27,19 +34,23 @@ impl ContractContext<OnChainContractStorage> for MarketplaceContract {
 
 impl Marketplace<OnChainContractStorage> for MarketplaceContract {}
 impl ReentrancyGuard<OnChainContractStorage> for MarketplaceContract {}
+impl AdminControl<OnChainContractStorage> for MarketplaceContract {}
 
 impl MarketplaceContract {
-    fn constructor(&mut self, fee: u8, fee_wallet: Address) {
-        Marketplace::init(self, fee, fee_wallet);
+    fn constructor(&mut self, acceptable_tokens: BTreeMap<String, u32>, fee_wallet: Address) {
+        Marketplace::init(self, acceptable_tokens, fee_wallet);
         ReentrancyGuard::init(self);
+        AdminControl::init(self);
     }
 }
 
 #[no_mangle]
 pub extern "C" fn constructor() {
-    let fee: u8 = runtime::get_named_arg("fee");
+    let acceptable_tokens: BTreeMap<String, u32> = runtime::get_named_arg("acceptable_tokens");
     let fee_wallet: Address = runtime::get_named_arg("fee_wallet");
-    MarketplaceContract::default().constructor(fee, fee_wallet);
+    MarketplaceContract::default().constructor(acceptable_tokens, fee_wallet);
+    let default_admin = runtime::get_caller();
+    MarketplaceContract::default().add_admin_without_checked(Key::from(default_admin));
 }
 
 #[no_mangle]
@@ -50,14 +61,14 @@ pub extern "C" fn create_sell_order() {
         let collection_str: String = runtime::get_named_arg("collection");
         ContractHash::from_formatted_str(&collection_str).unwrap()
     };
-    let token_id: U256 = runtime::get_named_arg("token_id");
+    let tokens: BTreeMap<TokenId, U256> = runtime::get_named_arg("tokens");
     let pay_token: Option<ContractHash> = {
         let pay_token_str: Option<String> = runtime::get_named_arg("pay_token");
         pay_token_str.map(|str| ContractHash::from_formatted_str(&str).unwrap())
     };
-    let price: U256 = runtime::get_named_arg("price");
+
     MarketplaceContract::default()
-        .create_sell_order(caller, start_time, collection, token_id, pay_token, price);
+        .create_sell_order(caller, start_time, collection, pay_token, tokens);
 }
 
 #[no_mangle]
@@ -88,8 +99,8 @@ pub extern "C" fn cancel_sell_order() {
         let collection_str: String = runtime::get_named_arg("collection");
         ContractHash::from_formatted_str(&collection_str).unwrap()
     };
-    let token_id: U256 = runtime::get_named_arg("token_id");
-    MarketplaceContract::default().cancel_sell_order(caller, collection, token_id);
+    let token_ids: Vec<TokenId> = runtime::get_named_arg("token_ids");
+    MarketplaceContract::default().cancel_sell_order(caller, collection, token_ids);
 }
 
 #[no_mangle]
@@ -173,9 +184,30 @@ pub extern "C" fn get_deposit_purse() {
 }
 
 #[no_mangle]
+pub extern "C" fn set_acceptable_token() {
+    let contract_hash: ContractHash = {
+        let contract_hash_str: String = runtime::get_named_arg("contract_hash");
+        ContractHash::from_formatted_str(&contract_hash_str).unwrap()
+    };
+    let fee: u32 = runtime::get_named_arg("fee");
+    MarketplaceContract::default().assert_caller_is_admin();
+    MarketplaceContract::default().set_acceptable_token(contract_hash, fee);
+}
+
+#[no_mangle]
+pub extern "C" fn remove_acceptable_token() {
+    let contract_hash: ContractHash = {
+        let contract_hash_str: String = runtime::get_named_arg("contract_hash");
+        ContractHash::from_formatted_str(&contract_hash_str).unwrap()
+    };
+    MarketplaceContract::default().assert_caller_is_admin();
+    MarketplaceContract::default().remove_acceptable_token(contract_hash);
+}
+
+#[no_mangle]
 pub extern "C" fn call() {
     let contract_name: String = runtime::get_named_arg("contract_name");
-    let fee: u8 = runtime::get_named_arg("fee");
+    let acceptable_tokens: BTreeMap<String, u32> = runtime::get_named_arg("acceptable_tokens");
     let fee_wallet: Address = runtime::get_named_arg("fee_wallet");
     let (contract_hash, _) = storage::new_contract(
         get_entry_points(),
@@ -199,7 +231,7 @@ pub extern "C" fn call() {
             .pop()
             .unwrap_or_revert();
     let constructor_args = runtime_args! {
-        "fee" => fee,
+        "acceptable_tokens" => acceptable_tokens,
         "fee_wallet" => fee_wallet
     };
     let _: () = runtime::call_contract(contract_hash, "constructor", constructor_args);
@@ -220,7 +252,13 @@ fn get_entry_points() -> EntryPoints {
     entry_points.add_entry_point(EntryPoint::new(
         "constructor",
         vec![
-            Parameter::new("fee", CLType::U8),
+            Parameter::new(
+                "acceptable_tokens",
+                CLType::Map {
+                    key: Box::new(CLType::String),
+                    value: Box::new(CLType::U32),
+                },
+            ),
             Parameter::new("fee_wallet", CLType::Key),
         ],
         CLType::Unit,
@@ -233,8 +271,13 @@ fn get_entry_points() -> EntryPoints {
         vec![
             Parameter::new("start_time", CLType::U64),
             Parameter::new("collection", CLType::String),
-            Parameter::new("token_id", CLType::U256),
-            Parameter::new("price", CLType::U256),
+            Parameter::new(
+                "tokens",
+                CLType::Map {
+                    key: Box::new(CLType::U256),
+                    value: Box::new(CLType::U256),
+                },
+            ),
         ],
         CLType::Unit,
         EntryPointAccess::Public,
@@ -315,6 +358,25 @@ fn get_entry_points() -> EntryPoints {
             Parameter::new("token_id", CLType::U256),
             Parameter::new("bidder", CLType::Key),
         ],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
+    entry_points.add_entry_point(EntryPoint::new(
+        "set_acceptable_token",
+        vec![
+            Parameter::new("contract_hash", CLType::String),
+            Parameter::new("fee", CLType::U32),
+        ],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
+    entry_points.add_entry_point(EntryPoint::new(
+        "remove_acceptable_token",
+        vec![Parameter::new("contract_hash", CLType::String)],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,

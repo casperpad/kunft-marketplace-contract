@@ -12,13 +12,10 @@ use casper_types::ApiError;
 #[repr(u16)]
 #[derive(Debug)]
 pub enum Error {
-    /// ERC20 contract called from within an invalid context.
     PermissionDenied = 0u16,
     RequireApprove,
-    /// Spender does not have enough balance.
     FinishedOrder,
     NotOrderCreator,
-    /// Spender does not have enough allowance approved.
     InsufficientAllowance,
     InsufficientBalance,
     InvalidPayToken,
@@ -26,6 +23,7 @@ pub enum Error {
     AlreadyExistOrder,
     NotExistToken,
     NotTokenOwner,
+    NotAcceptableToken,
     /// Operation would cause an integer overflow.
     Overflow,
     InvalidContext,

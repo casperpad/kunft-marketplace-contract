@@ -1,6 +1,11 @@
 import { config } from "dotenv";
 config();
-import { Keys, CasperClient } from "casper-js-sdk";
+import {
+  Keys,
+  CasperClient,
+  CLValueBuilder,
+  encodeBase16,
+} from "casper-js-sdk";
 import { CEP47Client } from "casper-cep47-js-client";
 import { BigNumberish, parseFixed } from "@ethersproject/bignumber";
 import { getAccountNamedKeyValue, getDeploy, getBinary } from "./utils";
@@ -25,9 +30,12 @@ const KEYS = Keys.Ed25519.parseKeyPair(public_key, private_key);
 const deployMarketplace = async () => {
   const marketplace = new MarketplaceClient(NODE_ADDRESS!, CHAIN_NAME!);
   const contractName = "kunft_marketplace";
+  const acceptableTokens = new Map<string, number>([]);
+  const null_contract_hash = new Uint8Array(32).fill(0);
+  acceptableTokens.set(`contract-${encodeBase16(null_contract_hash)}`, 1000);
   const deploy = marketplace.install(
     getBinary(MARKETPLACE_CONTRACT!),
-    { feeWallet: KEYS.publicKey, contractName },
+    { feeWallet: KEYS.publicKey, contractName, acceptableTokens },
     INSTALL_PAYMENT_AMOUNT!,
     KEYS.publicKey,
     [KEYS]

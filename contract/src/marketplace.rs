@@ -1,4 +1,4 @@
-use alloc::vec;
+use alloc::{collections::BTreeMap, string::String, vec, vec::Vec};
 use casper_contract::{
     contract_api::{runtime, system},
     unwrap_or_revert::UnwrapOrRevert,
@@ -10,7 +10,7 @@ use casper_types::{
 use contract_utils::{set_key, ContractContext, ContractStorage};
 
 use crate::{
-    data::{self, BuyOrders, DepositPurse, SellOrders},
+    data::{self, AcceptableTokens, BuyOrders, DepositPurse, SellOrders},
     event::MarketplaceEvent,
     interfaces::{icep47::ICEP47, ierc20::IERC20},
     libs::{u256_to_512, u512_to_u256},
@@ -18,11 +18,17 @@ use crate::{
     Address, Error, Time, TokenId,
 };
 pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
-    fn init(&mut self, fee: u8, fee_wallet: Address) {
+    fn init(&mut self, acceptable_tokens: BTreeMap<String, u32>, fee_wallet: Address) {
         SellOrders::init();
         BuyOrders::init();
         DepositPurse::init();
-        self.set_fee(fee);
+        AcceptableTokens::init();
+
+        acceptable_tokens.iter().for_each(|token| {
+            let contract_hash = ContractHash::from_formatted_str(token.0).unwrap();
+            self.set_acceptable_token(contract_hash, *token.1);
+        });
+
         self.set_fee_wallet(fee_wallet);
     }
 
@@ -31,54 +37,63 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         caller: Address,
         start_time: Time,
         collection: ContractHash,
-        token_id: TokenId,
         pay_token: Option<ContractHash>,
-        price: U256,
+        tokens: BTreeMap<TokenId, U256>,
     ) {
-        let sell_order: SellOrder = SellOrder {
-            creator: caller,
-            collection,
-            token_id,
-            pay_token,
-            price,
-            start_time,
-        };
+        tokens.iter().for_each(|(token_id, price)| {
+            let sell_order: SellOrder = SellOrder {
+                creator: caller,
+                collection,
+                token_id: *token_id,
+                pay_token,
+                price: *price,
+                start_time,
+            };
 
-        let approved = ICEP47::new(collection)
-            .get_approved(caller, token_id)
-            .unwrap_or_revert_with(Error::RequireApprove);
+            let approved = ICEP47::new(collection)
+                .get_approved(caller, *token_id)
+                .unwrap_or_revert_with(Error::RequireApprove);
 
-        if !approved.eq(&Address::from(self.contract_package_hash())) {
-            self.revert(Error::RequireApprove);
-        }
-        ICEP47::new(collection).transfer_from(
-            caller,
-            Address::from(self.contract_package_hash()),
-            vec![token_id],
-        );
-        SellOrders::instance().set(collection, token_id, sell_order);
-        self.emit(MarketplaceEvent::SellOrderCreated {
-            creator: caller,
-            collection,
-            token_id,
-            pay_token,
-            price,
-            start_time,
-        })
+            if !approved.eq(&Address::from(self.contract_package_hash())) {
+                self.revert(Error::RequireApprove);
+            }
+            ICEP47::new(collection).transfer_from(
+                caller,
+                Address::from(self.contract_package_hash()),
+                vec![*token_id],
+            );
+            SellOrders::instance().set(collection, *token_id, sell_order);
+            self.emit(MarketplaceEvent::SellOrderCreated {
+                creator: caller,
+                collection,
+                token_id: *token_id,
+                pay_token,
+                price: *price,
+                start_time,
+            });
+        });
     }
 
-    fn cancel_sell_order(&mut self, caller: Address, collection: ContractHash, token_id: TokenId) {
-        let order = SellOrders::instance().get(collection, token_id);
-        if order.creator.ne(&caller) {
-            self.revert(Error::NotOrderCreator);
-        }
-        self.assert_order_is_active(&order);
-        ICEP47::new(collection).transfer(caller, vec![token_id]);
-        SellOrders::instance().remove(collection, token_id);
-        self.emit(MarketplaceEvent::SellOrderCanceled {
-            creator: order.creator,
-            collection,
-            token_id,
+    fn cancel_sell_order(
+        &mut self,
+        caller: Address,
+        collection: ContractHash,
+        token_ids: Vec<TokenId>,
+    ) {
+        token_ids.iter().for_each(|token_id| {
+            let order = SellOrders::instance().get(collection, *token_id);
+            if order.creator.ne(&caller) {
+                self.revert(Error::NotOrderCreator);
+            }
+            self.assert_order_is_active(&order);
+            ICEP47::new(collection).transfer(caller, vec![*token_id]);
+            SellOrders::instance().remove(collection, *token_id);
+            self.emit(MarketplaceEvent::SellOrderCanceled {
+                creator: order.creator,
+                collection,
+                token_id: *token_id,
+                start_time: order.start_time,
+            });
         });
     }
 
@@ -119,6 +134,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
             token_id,
             buyer: caller,
             addtional_recipient,
+            start_time: order.start_time,
         });
     }
 
@@ -168,6 +184,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
             token_id,
             buyer: caller,
             addtional_recipient,
+            start_time: order.start_time,
         });
     }
 
@@ -339,7 +356,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         contract_hash: ContractHash,
         amount: U256,
     ) {
-        let fee = U256::from(self.fee());
+        let fee = U256::from(self.fee(Some(contract_hash)));
         let fee_denominator = U256::exp10(4);
         let transfer_amount_to_account = amount
             .checked_mul(fee_denominator.checked_sub(fee).unwrap_or_revert())
@@ -370,7 +387,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
     }
 
     fn transfer_cspr_with_fee(&mut self, account: Address, amount: U512) {
-        let fee = U512::from(self.fee());
+        let fee = U512::from(self.fee(None));
         let fee_denominator = U512::exp10(4);
         let transfer_amount_to_account = amount
             .checked_mul(fee_denominator.checked_sub(fee).unwrap_or_revert())
@@ -439,12 +456,19 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         self.update_purse_balance();
     }
 
-    fn set_fee(&mut self, fee: u8) {
-        data::set_fee(fee);
+    fn set_acceptable_token(&mut self, token: ContractHash, fee: u32) {
+        AcceptableTokens::instance().set(token, fee);
     }
 
-    fn fee(&self) -> u8 {
-        data::get_fee()
+    fn fee(&self, token: Option<ContractHash>) -> u32 {
+        match token {
+            Some(contract_hash) => AcceptableTokens::instance().get(contract_hash),
+            None => AcceptableTokens::instance().get(ContractHash::new([0u8; 32])),
+        }
+    }
+
+    fn remove_acceptable_token(&mut self, token: ContractHash) {
+        AcceptableTokens::instance().remove(token);
     }
 
     fn set_fee_wallet(&mut self, wallet: Address) {
