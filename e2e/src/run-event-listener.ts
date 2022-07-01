@@ -92,7 +92,7 @@ const startEventStream = async () => {
           contractHash: collection!.value(),
         });
         const cep47Client = new CEP47Client(NODE_ADDRESS!, CHAIN_NAME!);
-        cep47Client.setContractHash(collection!.value());
+        cep47Client.setContractHash(`hash-${collection!.value()}`);
         if (collectionDB === null) {
           const name = await cep47Client.name();
           console.log(
@@ -121,14 +121,8 @@ const startEventStream = async () => {
         formatedCreatorHash = `account-hash-${formatedCreatorHash}`;
         switch (eventName) {
           case MarketplaceEvents.SellOrderCreated: {
-            const user = await User.findOne({
-              accountHash: formatedCreatorHash,
-            });
-            if (user === null) {
-              throw Error(`Not exist user ${formatedCreatorHash}`);
-            }
             const sellOrder = new SellOrder({
-              creator: user,
+              creator: formatedCreatorHash,
               asset,
               payToken:
                 payToken!.value() === "None" ? undefined : payToken!.value(),
