@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "install-contract": "ts-node ./src/install-contract.ts",
+    "test-sign": "ts-node ./src/test-sign.ts",
     "create-user-profile": "ts-node ./src/create-user-profile.ts",
     "create-sell-order": "ts-node ./src/create-sell-order.ts",
     "cancel-sell-order": "ts-node ./src/cancel-sell-order.ts",
