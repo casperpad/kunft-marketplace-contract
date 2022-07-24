@@ -338,6 +338,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
                     collection,
                     token_id,
                     start_time: bid.start_time,
+                    owner: token_owner,
                 });
                 ICEP47::new(collection).transfer_from(caller, bidder, vec![token_id]);
                 bids.remove(&bidder);

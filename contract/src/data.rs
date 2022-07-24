@@ -274,6 +274,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
             collection,
             token_id,
             start_time,
+            owner,
         } => {
             let mut param = BTreeMap::new();
             param.insert("contract_package_hash", contract_package_hash.to_string());
@@ -282,6 +283,7 @@ pub fn emit(event: &MarketplaceEvent, contract_package_hash: ContractPackageHash
             param.insert("collection", collection.to_string());
             param.insert("token_id", format!("{}", token_id));
             param.insert("start_time", format!("{}", start_time));
+            param.insert("owner", format!("{:?}", owner));
 
             events.push(param);
         }

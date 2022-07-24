@@ -15,8 +15,9 @@ use casper_contract::{
     unwrap_or_revert::UnwrapOrRevert,
 };
 use casper_types::{
-    runtime_args, CLType, CLValue, ContractHash, ContractPackageHash, EntryPoint, EntryPointAccess,
-    EntryPointType, EntryPoints, Group, Key, Parameter, RuntimeArgs, URef, U256, U512,
+    contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
+    EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Group, Key, Parameter, RuntimeArgs,
+    URef, U256, U512,
 };
 use contract_utils::{AdminControl, ContractContext, OnChainContractStorage, ReentrancyGuard};
 use kunftmarketplace_contract::{
@@ -205,19 +206,37 @@ pub extern "C" fn remove_acceptable_token() {
 }
 
 #[no_mangle]
+pub extern "C" fn set_fee_wallet() {
+    let fee_wallet: Address = runtime::get_named_arg("fee_wallet");
+    MarketplaceContract::default().assert_caller_is_admin();
+    MarketplaceContract::default().set_fee_wallet(fee_wallet);
+}
+
+#[no_mangle]
 pub extern "C" fn call() {
     let contract_name: String = runtime::get_named_arg("contract_name");
     let acceptable_tokens: BTreeMap<String, u32> = runtime::get_named_arg("acceptable_tokens");
     let fee_wallet: Address = runtime::get_named_arg("fee_wallet");
-    let (contract_hash, _) = storage::new_contract(
-        get_entry_points(),
-        None,
-        Some(String::from(format!(
-            "{}_contract_package_hash",
-            contract_name
-        ))),
-        None,
-    );
+    let exist_contract_package_hash: Option<ContractPackageHash> = {
+        let contract_package_hash_str: Option<String> =
+            runtime::get_named_arg("contract_package_hash");
+        contract_package_hash_str.map(|str| ContractPackageHash::from_formatted_str(&str).unwrap())
+    };
+    let (contract_hash, _) = match exist_contract_package_hash {
+        Some(contract_package_hash) => {
+            let named_keys = NamedKeys::new();
+            storage::add_contract_version(contract_package_hash, get_entry_points(), named_keys)
+        }
+        None => storage::new_contract(
+            get_entry_points(),
+            None,
+            Some(String::from(format!(
+                "{}_contract_package_hash",
+                contract_name
+            ))),
+            None,
+        ),
+    };
 
     let package_hash: ContractPackageHash = ContractPackageHash::new(
         runtime::get_key(&format!("{}_contract_package_hash", contract_name))
@@ -377,6 +396,14 @@ fn get_entry_points() -> EntryPoints {
     entry_points.add_entry_point(EntryPoint::new(
         "remove_acceptable_token",
         vec![Parameter::new("contract_hash", CLType::String)],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
+    entry_points.add_entry_point(EntryPoint::new(
+        "set_fee_wallet",
+        vec![Parameter::new("fee_wallet", CLType::Key)],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,

@@ -1,13 +1,12 @@
 use std::collections::BTreeMap;
 
+use crate::utils::key_and_value_to_str;
 use casper_types::{
     account::AccountHash, bytesrepr::FromBytes, runtime_args, CLTyped, ContractHash,
     ContractPackageHash, Key, RuntimeArgs, U256,
 };
 use kunftmarketplace_contract::{Address, Bids, SellOrder, Time, TokenId};
 use test_env::{TestContract, TestEnv};
-
-use crate::utils::key_and_value_to_str;
 
 pub struct MarketplaceInstance(TestContract);
 
@@ -19,6 +18,7 @@ impl MarketplaceInstance {
         acceptable_tokens: BTreeMap<String, u32>,
         fee_wallet: Address,
     ) -> MarketplaceInstance {
+        let exist_version: Option<String> = None;
         MarketplaceInstance(TestContract::new(
             env,
             "marketplace_contract.wasm",
@@ -26,7 +26,8 @@ impl MarketplaceInstance {
             sender,
             runtime_args! {
                 "acceptable_tokens" => acceptable_tokens,
-                "fee_wallet" => fee_wallet
+                "fee_wallet" => fee_wallet,
+                "contract_package_hash"=>exist_version
             },
         ))
     }

@@ -1,5 +1,6 @@
 import { config } from "dotenv";
-config();
+// config();
+config({ path: ".env.test.local" });
 import {
   Keys,
   CasperClient,
@@ -69,9 +70,9 @@ const test = async () => {
   const feeWallet = await marketplace.feeWallet();
   console.log(feeWallet);
 
-  const owner = await cep47.getOwnerOf("41");
+  const tokenMeta = await cep47.getTokenMeta("1");
 
-  console.log(owner);
+  console.log(tokenMeta);
 };
 
 test();

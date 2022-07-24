@@ -45,6 +45,7 @@ pub enum MarketplaceEvent {
         collection: ContractHash,
         token_id: TokenId,
         start_time: Time,
+        owner: Address,
     },
     AcceptableTokenAdded {
         contract_hash: ContractHash,

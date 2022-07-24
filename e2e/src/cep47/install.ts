@@ -1,5 +1,7 @@
 import { config } from "dotenv";
 config();
+// config({ path: ".env.test.local" });
+// config({ path: ".env.production.local" });
 import { CEP47Client } from "casper-cep47-js-client";
 import {
   parseTokenMeta,

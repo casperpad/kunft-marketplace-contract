@@ -56,6 +56,8 @@ const startEventStream = async () => {
     `${MARKETPLACE_CONTRACT_NAME!}_contract_package_hash`
   );
 
+  console.log({ contractPackageHash });
+
   es.subscribe(EventName.DeployProcessed, async (event) => {
     const parsedEvents = MarketplaceEventParser(
       {

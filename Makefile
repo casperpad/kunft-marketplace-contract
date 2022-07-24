@@ -26,3 +26,7 @@ clean:
 	cd contract && cargo clean
 	cd tests && cargo clean
 	rm -rf tests/wasm
+
+wasm:
+	cd wasm
+	wasm-pack build --target web

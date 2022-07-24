@@ -31,6 +31,7 @@ export interface MarketplaceInstallArgs {
   feeWallet: RecipientType;
   acceptableTokens: Map<string, number>;
   contractName: string;
+  contractPackageHash?: string;
 }
 
 export enum MarketplaceEvents {
@@ -123,6 +124,11 @@ export class MarketplaceClient {
       fee_wallet: args.feeWallet,
       acceptable_tokens,
       contract_name: CLValueBuilder.string(args.contractName),
+      contract_package_hash: args.contractPackageHash
+        ? CLValueBuilder.option(
+            Some(CLValueBuilder.string(args.contractPackageHash))
+          )
+        : CLValueBuilder.option(None, new CLStringType()),
     });
     return this.contractClient.install(
       wasm,

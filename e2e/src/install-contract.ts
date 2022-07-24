@@ -1,19 +1,13 @@
 import { config } from "dotenv";
-config();
-import {
-  Keys,
-  CasperClient,
-  CLValueBuilder,
-  encodeBase16,
-} from "casper-js-sdk";
-import { CEP47Client } from "casper-cep47-js-client";
-import { BigNumberish, parseFixed } from "@ethersproject/bignumber";
+// config();
+config({ path: ".env.test.local" });
+// config({ path: ".env.production.local" });
+import { Keys, CasperClient, encodeBase16 } from "casper-js-sdk";
 import { getAccountNamedKeyValue, getDeploy, getBinary } from "./utils";
 import { MarketplaceClient } from "./clients/marketplace";
 
 const {
   NODE_ADDRESS,
-  EVENT_STREAM_ADDRESS,
   CHAIN_NAME,
   MASTER_KEY_PAIR_PATH,
   INSTALL_PAYMENT_AMOUNT,
@@ -33,9 +27,15 @@ const deployMarketplace = async () => {
   const acceptableTokens = new Map<string, number>([]);
   const null_contract_hash = new Uint8Array(32).fill(0);
   acceptableTokens.set(`contract-${encodeBase16(null_contract_hash)}`, 1000);
+  const contractPackageHash = `contract-package-wasm6db1ff432a74c4191eda03327b31c5875efa93891404456e30c3dc1a7b91148e`;
   const deploy = marketplace.install(
     getBinary(MARKETPLACE_CONTRACT!),
-    { feeWallet: KEYS.publicKey, contractName, acceptableTokens },
+    {
+      feeWallet: KEYS.publicKey,
+      contractName,
+      acceptableTokens,
+      contractPackageHash,
+    },
     INSTALL_PAYMENT_AMOUNT!,
     KEYS.publicKey,
     [KEYS]
