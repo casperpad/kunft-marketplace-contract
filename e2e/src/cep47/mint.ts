@@ -40,14 +40,12 @@ const test = async () => {
   //   `${CE47_CONTRACT_NAME!}_contract_package_hash`
   // );
 
-  const contractHash = `hash-790136a19c7e82c48d5cf606461f57078697a53b9c0039416a99d5620a783877`;
-  const contractPackageHash = `hash-2082293699e53777cf44a7d69e64c09715a39658428b2074aac8515901bfc87b`;
+  const contractHash = `hash-3349d98a013dba40bc95e77ac7225c31657a6ee39786729f362366956816c9f1`;
+  const contractPackageHash = `hash-33f0ba69adef5b8898ade783f1d8ad9386fb3b2cd41f44b6ff6cf165b000448a`;
 
   console.log(`... Contract Hash: ${contractHash}`);
 
   cep47.setContractHash(contractHash, contractPackageHash);
-
-  await sleep(5 * 1000);
 
   const name = await cep47.name();
   console.log(`... Contract name: ${name}`);

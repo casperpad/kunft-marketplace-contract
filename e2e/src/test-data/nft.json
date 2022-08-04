@@ -6,7 +6,7 @@
       "tokenId": 1,
       "name": "KUNFT #1",
       "trait": {
-        "logo": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/36.png",
+        "image": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/36.png",
         "eye": "Red"
       }
     },
@@ -14,7 +14,7 @@
       "tokenId": 2,
       "name": "KUNFT #2",
       "trait": {
-        "logo": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/21.png",
+        "image": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/21.png",
         "eye": "Blue"
       }
     },
@@ -22,7 +22,7 @@
       "tokenId": 3,
       "name": "KUNFT #3",
       "trait": {
-        "logo": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/34.png",
+        "image": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/34.png",
         "eye": "Green"
       }
     },
@@ -30,7 +30,7 @@
       "tokenId": 4,
       "name": "KUNFT #4",
       "trait": {
-        "logo": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/20.png",
+        "image": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/20.png",
         "eye": "Gray"
       }
     },
@@ -38,7 +38,7 @@
       "tokenId": 5,
       "name": "KUNFT #5",
       "trait": {
-        "logo": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/94.png",
+        "image": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/94.png",
         "eye": "Cyan"
       }
     },
@@ -46,7 +46,7 @@
       "tokenId": 6,
       "name": "KUNFT #6",
       "trait": {
-        "logo": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/109.png",
+        "image": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/109.png",
         "eye": "Purple"
       }
     },
@@ -54,7 +54,7 @@
       "tokenId": 7,
       "name": "KUNFT #7",
       "trait": {
-        "logo": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/70.png",
+        "image": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/70.png",
         "eye": "white"
       }
     },
@@ -62,7 +62,7 @@
       "tokenId": 8,
       "name": "KUNFT #8",
       "trait": {
-        "logo": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/71.png",
+        "image": "https://beta.api.solanalysis.com/images/400x400/filters:frames(,0)/https://nftstorage.link/ipfs/QmdY19KFGapDQroyJosx1NZ6JpUVN8kRphCqVjNUAep8HY/71.png",
         "eye": "orange"
       }
     }

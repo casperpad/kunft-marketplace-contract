@@ -1,6 +1,6 @@
 import { config } from "dotenv";
-config();
-// config({ path: ".env.test.local" });
+// config();
+config({ path: ".env.test.local" });
 // config({ path: ".env.production.local" });
 import { CEP47Client } from "casper-cep47-js-client";
 import {
@@ -21,7 +21,7 @@ const {
   CEP47_TOKEN_NAME,
   CE47_CONTRACT_NAME,
   CEP47_TOKEN_SYMBOL,
-  INSTALL_PAYMENT_AMOUNT,
+  CEP47_INSTALL_PAYMENT_AMOUNT,
 } = process.env;
 
 const TOKEN_META = new Map(parseTokenMeta(process.env.CEP47_TOKEN_META!));
@@ -44,7 +44,7 @@ const test = async () => {
       symbol: CEP47_TOKEN_SYMBOL!,
       meta: TOKEN_META,
     },
-    INSTALL_PAYMENT_AMOUNT!,
+    CEP47_INSTALL_PAYMENT_AMOUNT!,
     KEYS.publicKey,
     [KEYS]
   );

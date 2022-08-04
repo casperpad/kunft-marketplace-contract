@@ -324,3 +324,15 @@ fn should_create_buy_order_and_accept() {
     let token_owner = nft.owner_of(token_id).unwrap();
     assert_eq!(token_owner, Key::from(bob));
 }
+
+#[test]
+fn should_set_fee_wallet() {
+    let (env, test_context, owner) = deploy();
+    let marketplace = test_context.marketplace;
+    let user = env.next_user();
+    let mut old_wallet = marketplace.fee_wallet();
+    marketplace.set_fee_wallet(owner, Key::from(user));
+    old_wallet = marketplace.fee_wallet();
+    println!("{:?}", user);
+    assert_eq!(old_wallet, Address::from(user))
+}

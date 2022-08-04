@@ -130,8 +130,22 @@ impl MarketplaceInstance {
         )
     }
 
+    pub fn set_fee_wallet(&self, sender: AccountHash, fee_wallet: Key) {
+        self.0.call_contract(
+            sender,
+            "set_fee_wallet",
+            runtime_args! {
+                "fee_wallet" => fee_wallet
+            },
+        )
+    }
+
     pub fn result<T: CLTyped + FromBytes>(&self) -> T {
         self.0.query_named_key("result".to_string())
+    }
+
+    pub fn fee_wallet(&self) -> Address {
+        self.0.query_named_key("fee_wallet".to_string())
     }
 
     pub fn buy_order_of(&self, collection: ContractHash, token_id: U256) -> Bids {

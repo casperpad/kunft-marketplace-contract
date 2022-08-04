@@ -121,7 +121,7 @@ export class MarketplaceClient {
       );
     });
     const runtimeArgs = RuntimeArgs.fromMap({
-      fee_wallet: args.feeWallet,
+      fee_wallet: new CLKey(args.feeWallet),
       acceptable_tokens,
       contract_name: CLValueBuilder.string(args.contractName),
       contract_package_hash: args.contractPackageHash
@@ -231,6 +231,24 @@ export class MarketplaceClient {
       "fee_wallet",
     ])) as CLValue;
     return encodeBase16(result.value());
+  }
+
+  public setFeeWallet(
+    feeWallet: CLKeyParameters,
+    key: Keys.AsymmetricKey,
+    paymentAmount: string
+  ) {
+    const runtimeArgs = RuntimeArgs.fromMap({
+      fee_wallet: new CLKey(feeWallet),
+    });
+    return this.contractClient.callEntrypoint(
+      "set_fee_wallet",
+      runtimeArgs,
+      key.publicKey,
+      this.networkName,
+      paymentAmount,
+      [key]
+    );
   }
 
   public createBuyOrder(
