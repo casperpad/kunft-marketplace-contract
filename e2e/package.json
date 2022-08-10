@@ -8,6 +8,7 @@
     "mint": "ts-node ./src/cep47/mint.ts",
     "install:contract": "ts-node ./src/install-contract.ts",
     "install:cep47": "ts-node ./src/cep47/install.ts",
+    "install:erc20": "ts-node ./src/erc20/install.ts",
     "cep47:mint": "ts-node ./src/cep47/mint.ts",
     "test-sign": "ts-node-dev ./src/test-sign.ts",
     "create-user-profile": "ts-node ./src/create-user-profile.ts",

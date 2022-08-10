@@ -1,5 +1,6 @@
 import { config } from "dotenv";
-config();
+// config();
+config({ path: ".env.test.local" });
 import { CasperClient } from "casper-js-sdk";
 
 const { NODE_ADDRESS } = process.env;

@@ -94,6 +94,27 @@ pub extern "C" fn buy_sell_order_cspr() {
 }
 
 #[no_mangle]
+pub extern "C" fn buy_sell_order() {
+    let caller = get_immediate_caller_address().unwrap();
+    let collection: ContractHash = {
+        let collection_str: String = runtime::get_named_arg("collection");
+        ContractHash::from_formatted_str(&collection_str).unwrap()
+    };
+    let token_id: U256 = runtime::get_named_arg("token_id");
+    let amount: U256 = runtime::get_named_arg("amount");
+    let additional_recipient: Option<Address> = runtime::get_named_arg("additional_recipient");
+    MarketplaceContract::default().set_reentrancy();
+    MarketplaceContract::default().buy_sell_order(
+        caller,
+        collection,
+        token_id,
+        amount,
+        additional_recipient,
+    );
+    MarketplaceContract::default().clear_reentrancy();
+}
+
+#[no_mangle]
 pub extern "C" fn cancel_sell_order() {
     let caller = get_immediate_caller_address().unwrap();
     let collection: ContractHash = {
@@ -309,6 +330,26 @@ fn get_entry_points() -> EntryPoints {
             Parameter::new("collection", CLType::String),
             Parameter::new("token_id", CLType::U256),
             Parameter::new("amount", CLType::U512),
+            Parameter::new(
+                "additional_recipient",
+                CLType::Option(Box::new(CLType::Key)),
+            ),
+        ],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    ));
+
+    entry_points.add_entry_point(EntryPoint::new(
+        "buy_sell_order",
+        vec![
+            Parameter::new("collection", CLType::String),
+            Parameter::new("token_id", CLType::U256),
+            Parameter::new("amount", CLType::U512),
+            Parameter::new(
+                "additional_recipient",
+                CLType::Option(Box::new(CLType::Key)),
+            ),
         ],
         CLType::Unit,
         EntryPointAccess::Public,

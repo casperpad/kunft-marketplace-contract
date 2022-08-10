@@ -23,7 +23,7 @@ pub enum MarketplaceEvent {
         collection: ContractHash,
         token_id: TokenId,
         buyer: Address,
-        addtional_recipient: Option<Address>,
+        additional_recipient: Option<Address>,
     },
     BuyOrderCreated {
         creator: Address,
