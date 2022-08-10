@@ -50,7 +50,7 @@ impl SellOrders {
     pub fn get(&self, contract_hash: ContractHash, token_id: TokenId) -> SellOrder {
         self.dict
             .get(&self.contract_hash_and_value_to_str(contract_hash, token_id))
-            .unwrap_or_revert()
+            .unwrap_or_revert_with(Error::NotExistOrder)
     }
 
     pub fn set(&self, contract_hash: ContractHash, token_id: TokenId, order: SellOrder) {

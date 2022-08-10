@@ -48,6 +48,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
                 pay_token,
                 price: *price,
                 start_time,
+                status: 0u8,
             };
 
             let approved = ICEP47::new(collection)
@@ -106,7 +107,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         additional_recipient: Option<Address>,
     ) {
         self.assert_valid_cspr_transfer(amount);
-        let order = SellOrders::instance().get(collection, token_id);
+        let mut order = SellOrders::instance().get(collection, token_id);
         self.assert_order_is_active(&order);
         if order.pay_token.is_some() {
             self.revert(Error::InvalidPayToken);
@@ -137,6 +138,9 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         };
 
         self.transfer_cspr_with_fee(order.creator, amount);
+
+        order.status = 1;
+
         SellOrders::instance().set(collection, token_id, order);
         self.emit(MarketplaceEvent::SellOrderBought {
             creator: order.creator,
@@ -156,7 +160,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         amount: U256,
         additional_recipient: Option<Address>,
     ) {
-        let order = SellOrders::instance().get(collection, token_id);
+        let mut order = SellOrders::instance().get(collection, token_id);
         self.assert_order_is_active(&order);
         if order.pay_token.is_none() {
             self.revert(Error::InvalidPayToken);
@@ -196,6 +200,8 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
                 );
             }
         };
+
+        order.status = 1;
 
         SellOrders::instance().set(collection, token_id, order);
         self.emit(MarketplaceEvent::SellOrderBought {
@@ -511,12 +517,16 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
     }
 
     fn assert_order_is_active(&self, order: &SellOrder) {
-        let token_owner = ICEP47::new(order.collection)
-            .owner_of(order.token_id)
-            .unwrap();
-        if token_owner.ne(&Address::from(self.contract_package_hash())) {
-            runtime::revert(Error::FinishedOrder);
+        if order.status == 1u8 {
+            runtime::revert(Error::FinishedOrder)
         }
+
+        // let token_owner = ICEP47::new(order.collection)
+        //     .owner_of(order.token_id)
+        //     .unwrap();
+        // if token_owner.ne(&Address::from(self.contract_package_hash())) {
+        //     runtime::revert(Error::FinishedOrder);
+        // }
     }
 
     fn store_result<T: CLTyped + ToBytes>(&mut self, value: T) {

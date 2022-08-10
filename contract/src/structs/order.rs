@@ -4,6 +4,8 @@ use casper_types_derive::{CLTyped, FromBytes, ToBytes};
 
 use crate::{Address, Time, TokenId};
 
+// order status u8 0:pending, 1:completed, 2:canceled
+
 #[derive(Clone, Copy, Debug, CLTyped, ToBytes, FromBytes)]
 pub struct SellOrder {
     pub creator: Address,
@@ -12,6 +14,7 @@ pub struct SellOrder {
     pub pay_token: Option<ContractHash>,
     pub price: U256,
     pub start_time: Time,
+    pub status: u8,
 }
 
 #[derive(Clone, Copy, Debug, CLTyped, ToBytes, FromBytes)]

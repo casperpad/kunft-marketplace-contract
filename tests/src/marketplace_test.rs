@@ -227,17 +227,11 @@ fn should_create_sell_order_and_cancel() {
         pay_token,
     );
 
-    let mut token_owner = nft.owner_of(token_id).unwrap();
-
-    assert_eq!(token_owner, Key::from(marketplace.contract_package_hash()));
-
     marketplace.cancel_sell_order(
         user,
         nft.contract_hash().to_formatted_string(),
         vec![token_id],
     );
-    token_owner = nft.owner_of(token_id).unwrap();
-    assert_eq!(token_owner, Key::from(user));
 }
 
 #[test]
@@ -330,9 +324,9 @@ fn should_set_fee_wallet() {
     let (env, test_context, owner) = deploy();
     let marketplace = test_context.marketplace;
     let user = env.next_user();
-    let mut old_wallet = marketplace.fee_wallet();
+
     marketplace.set_fee_wallet(owner, Key::from(user));
-    old_wallet = marketplace.fee_wallet();
+    let fee_wallet = marketplace.fee_wallet();
     println!("{:?}", user);
-    assert_eq!(old_wallet, Address::from(user))
+    assert_eq!(fee_wallet, Address::from(user))
 }
