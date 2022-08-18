@@ -122,7 +122,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         // Send NFT
         match additional_recipient {
             Some(address) => {
-                ICEP47::new(order.collection).transfer(Address::from(address), vec![token_id]);
+                ICEP47::new(order.collection).transfer(address, vec![token_id]);
                 // ICEP47::new(collection).transfer_from(
                 //     order.creator,
                 //     Address::from(address),
@@ -130,7 +130,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
                 // );
             }
             None => {
-                ICEP47::new(order.collection).transfer(Address::from(caller), vec![token_id]);
+                ICEP47::new(order.collection).transfer(caller, vec![token_id]);
                 // ICEP47::new(collection).transfer_from(
                 //     order.creator,
                 //     Address::from(caller),
@@ -167,17 +167,15 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         if order.pay_token.is_none() {
             self.revert(Error::InvalidPayToken);
         }
-        let allowance = IERC20::new(order.pay_token.unwrap()).allowance(
-            Address::from(caller),
-            Address::from(self.contract_package_hash()),
-        );
+        let allowance = IERC20::new(order.pay_token.unwrap())
+            .allowance(caller, Address::from(self.contract_package_hash()));
         if allowance.lt(&amount) {
             self.revert(Error::InsufficientBalance);
         }
 
         // Transfer pay token
         self.transfer_with_fee(
-            Some(Address::from(caller)),
+            Some(caller),
             order.creator,
             order.pay_token.unwrap(),
             amount,
@@ -186,20 +184,12 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         // Send NFT
         match additional_recipient {
             Some(address) => {
-                ICEP47::new(order.collection).transfer(Address::from(address), vec![token_id]);
-                ICEP47::new(collection).transfer_from(
-                    order.creator,
-                    Address::from(address),
-                    vec![token_id],
-                );
+                ICEP47::new(order.collection).transfer(address, vec![token_id]);
+                ICEP47::new(collection).transfer_from(order.creator, address, vec![token_id]);
             }
             None => {
                 // ICEP47::new(order.collection).transfer(Address::from(caller), vec![token_id]);
-                ICEP47::new(collection).transfer_from(
-                    order.creator,
-                    Address::from(caller),
-                    vec![token_id],
-                );
+                ICEP47::new(collection).transfer_from(order.creator, caller, vec![token_id]);
             }
         };
 
@@ -264,10 +254,8 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         if bids.contains_key(&caller) {
             self.revert(Error::AlreadyExistOrder);
         }
-        let allowance = IERC20::new(pay_token).allowance(
-            Address::from(caller),
-            Address::from(self.contract_package_hash()),
-        );
+        let allowance =
+            IERC20::new(pay_token).allowance(caller, Address::from(self.contract_package_hash()));
         if allowance.lt(&amount) {
             self.revert(Error::InsufficientBalance);
         }

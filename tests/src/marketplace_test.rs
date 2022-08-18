@@ -104,7 +104,7 @@ fn should_create_sell_order_and_buy_cspr() {
     let nft = test_context.nft;
     let marketplace = test_context.marketplace;
 
-    nft.mint_copies(owner, user, vec![token_0, token_1], token_meta.clone(), 2);
+    nft.mint_copies(owner, user, vec![token_0, token_1], token_meta, 2);
 
     nft.approve(
         user,
@@ -176,7 +176,7 @@ fn should_create_sell_order_and_buy() {
     let token_meta = meta::red_dragon();
     let nft = test_context.nft;
     let marketplace = test_context.marketplace;
-    nft.mint_one(owner, user, token_id, token_meta.clone());
+    nft.mint_one(owner, user, token_id, token_meta);
 
     nft.approve(
         user,
@@ -207,7 +207,7 @@ fn should_create_sell_order_and_cancel() {
     let token_meta = meta::red_dragon();
     let nft = test_context.nft;
     let marketplace = test_context.marketplace;
-    nft.mint_one(owner, user, token_id, token_meta.clone());
+    nft.mint_one(owner, user, token_id, token_meta);
 
     nft.approve(
         user,
@@ -244,7 +244,7 @@ fn should_create_buy_order_and_cancel() {
     let ali = env.next_user();
     let token_id = TokenId::zero();
     let token_meta = meta::red_dragon();
-    nft.mint_one(owner, ali, token_id, token_meta.clone());
+    nft.mint_one(owner, ali, token_id, token_meta);
 
     let bob = env.next_user();
     let offer_amount = U256::from(90u8).checked_mul(U256::exp10(9)).unwrap();
@@ -281,7 +281,7 @@ fn should_create_buy_order_and_accept() {
     let ali = env.next_user();
     let token_id = TokenId::zero();
     let token_meta = meta::red_dragon();
-    nft.mint_one(owner, ali, token_id, token_meta.clone());
+    nft.mint_one(owner, ali, token_id, token_meta);
 
     let bob = env.next_user();
     let offer_amount = U256::from(90u8).checked_mul(U256::exp10(9)).unwrap();

@@ -146,7 +146,7 @@ impl TestEnv {
             .unwrap()
             .named_keys()
             .get(&key)
-            .map(|key| *key)
+            .copied()
             .unwrap()
     }
 }
