@@ -246,6 +246,7 @@ pub extern "C" fn call() {
     let (contract_hash, _) = match exist_contract_package_hash {
         Some(contract_package_hash) => {
             let named_keys = NamedKeys::new();
+
             storage::add_contract_version(contract_package_hash, get_entry_points(), named_keys)
         }
         None => storage::new_contract(
@@ -255,7 +256,10 @@ pub extern "C" fn call() {
                 "{}_contract_package_hash",
                 contract_name
             ))),
-            None,
+            Some(String::from(format!(
+                "{}_contract_access_token",
+                contract_name
+            ))),
         ),
     };
 
@@ -265,11 +269,19 @@ pub extern "C" fn call() {
             .into_hash()
             .unwrap_or_revert(),
     );
-    let constructor_access: URef =
-        storage::create_contract_user_group(package_hash, "constructor", 1, Default::default())
-            .unwrap_or_revert()
-            .pop()
-            .unwrap_or_revert();
+
+    let constructor_access: URef = match exist_contract_package_hash {
+        Some(contract_package_hash) => {
+            storage::provision_contract_user_group_uref(contract_package_hash, "constructor")
+                .unwrap()
+        }
+        None => {
+            storage::create_contract_user_group(package_hash, "constructor", 1, Default::default())
+                .unwrap_or_revert()
+                .pop()
+                .unwrap_or_revert()
+        }
+    };
     let constructor_args = runtime_args! {
         "acceptable_tokens" => acceptable_tokens,
         "fee_wallet" => fee_wallet

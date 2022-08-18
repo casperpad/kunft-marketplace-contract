@@ -40,6 +40,8 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         pay_token: Option<ContractHash>,
         tokens: BTreeMap<TokenId, U256>,
     ) {
+        // Check pay token is acceptable
+
         tokens.iter().for_each(|(token_id, price)| {
             let sell_order: SellOrder = SellOrder {
                 creator: caller,
@@ -58,11 +60,11 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
             if !approved.eq(&Address::from(self.contract_package_hash())) {
                 self.revert(Error::RequireApprove);
             }
-            // ICEP47::new(collection).transfer_from(
-            //     caller,
-            //     Address::from(self.contract_package_hash()),
-            //     vec![*token_id],
-            // );
+            ICEP47::new(collection).transfer_from(
+                caller,
+                Address::from(self.contract_package_hash()),
+                vec![*token_id],
+            );
             SellOrders::instance().set(collection, *token_id, sell_order);
             self.emit(MarketplaceEvent::SellOrderCreated {
                 creator: caller,
@@ -87,7 +89,7 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
                 self.revert(Error::NotOrderCreator);
             }
             self.assert_order_is_active(&order);
-            // ICEP47::new(collection).transfer(caller, vec![*token_id]);
+            ICEP47::new(collection).transfer(caller, vec![*token_id]);
             SellOrders::instance().remove(collection, *token_id);
             self.emit(MarketplaceEvent::SellOrderCanceled {
                 creator: order.creator,
@@ -120,20 +122,20 @@ pub trait Marketplace<Storage: ContractStorage>: ContractContext<Storage> {
         // Send NFT
         match additional_recipient {
             Some(address) => {
-                // ICEP47::new(order.collection).transfer(Address::from(address), vec![token_id]);
-                ICEP47::new(collection).transfer_from(
-                    order.creator,
-                    Address::from(address),
-                    vec![token_id],
-                );
+                ICEP47::new(order.collection).transfer(Address::from(address), vec![token_id]);
+                // ICEP47::new(collection).transfer_from(
+                //     order.creator,
+                //     Address::from(address),
+                //     vec![token_id],
+                // );
             }
             None => {
-                // ICEP47::new(order.collection).transfer(Address::from(caller), vec![token_id]);
-                ICEP47::new(collection).transfer_from(
-                    order.creator,
-                    Address::from(caller),
-                    vec![token_id],
-                );
+                ICEP47::new(order.collection).transfer(Address::from(caller), vec![token_id]);
+                // ICEP47::new(collection).transfer_from(
+                //     order.creator,
+                //     Address::from(caller),
+                //     vec![token_id],
+                // );
             }
         };
 

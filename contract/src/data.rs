@@ -110,11 +110,11 @@ pub struct DepositPurse {}
 
 impl DepositPurse {
     pub fn init() {
-        let purse = system::create_purse();
-
-        runtime::put_key(PURSE_KEY_NAME, Key::from(purse));
-
-        set_key(PURSE_BALANCE_KEY_NAME, U512::zero());
+        if runtime::get_key(PURSE_KEY_NAME).is_none() {
+            let purse = system::create_purse();
+            runtime::put_key(PURSE_KEY_NAME, Key::from(purse));
+            set_key(PURSE_BALANCE_KEY_NAME, U512::zero());
+        }
     }
 
     pub fn purse() -> URef {

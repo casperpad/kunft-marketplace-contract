@@ -14,6 +14,7 @@
     "create-user-profile": "ts-node ./src/create-user-profile.ts",
     "create-sell-order": "ts-node ./src/create-sell-order.ts",
     "cancel-sell-order": "ts-node ./src/cancel-sell-order.ts",
+    "set-acceptable-token": "ts-node ./src/set-acceptable-token.ts",
     "set-fee-wallet": "ts-node ./src/set-fee-wallet.ts",
     "buy-sell-order-cspr": "ts-node ./src/buy-sell-order-cspr.ts",
     "use-cep47": "ts-node ./src/cep47/usage.ts",

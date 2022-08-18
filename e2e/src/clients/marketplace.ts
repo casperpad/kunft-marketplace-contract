@@ -277,4 +277,30 @@ export class MarketplaceClient {
       [key]
     );
   }
+
+  public async setAcceptableToken(
+    contractHash: string,
+    fee: number,
+    sender: CLPublicKey,
+    paymentAmount: string,
+    signingKeys?: Keys.AsymmetricKey[]
+  ) {
+    const runtimeArgs = RuntimeArgs.fromMap({
+      contract_hash: CLValueBuilder.string(`contract-${contractHash}`),
+      fee: CLValueBuilder.u32(fee),
+    });
+    const deploy = this.contractClient.callEntrypoint(
+      "set_acceptable_token",
+      runtimeArgs,
+      sender,
+      this.networkName,
+      paymentAmount,
+      signingKeys
+    );
+    // if (signingKeys) {
+    //   const deployHash = await this.casperClient.putDeploy(deploy);
+    //   return deployHash;
+    // }
+    return deploy;
+  }
 }

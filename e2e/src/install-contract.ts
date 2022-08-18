@@ -27,7 +27,7 @@ const deployMarketplace = async () => {
   const acceptableTokens = new Map<string, number>([]);
   const null_contract_hash = new Uint8Array(32).fill(0);
   acceptableTokens.set(`contract-${encodeBase16(null_contract_hash)}`, 1000);
-  const contractPackageHash = `contract-package-wasmf6ed8863ffeedc7c79cacaaaa8e3164f6b26f569895076d0d6be8fb32230b8e2`;
+  const contractPackageHash = `contract-package-wasm7d7896b8e0f04f6c54904f834427be1fe8b0f5acdadb27e32c44051e35cb193c`;
   // const contractPackageHash = undefined;
   const deploy = marketplace.install(
     getBinary(MARKETPLACE_CONTRACT!),
