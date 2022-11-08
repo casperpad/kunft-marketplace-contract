@@ -10,6 +10,7 @@
     "install:cep47": "ts-node ./src/cep47/install.ts",
     "install:erc20": "ts-node ./src/erc20/install.ts",
     "cep47:mint": "ts-node ./src/cep47/mint.ts",
+    "cep47:generate-mint-json": "ts-node ./src/test-data/generate.ts",
     "test-sign": "ts-node-dev ./src/test-sign.ts",
     "create-user-profile": "ts-node ./src/create-user-profile.ts",
     "create-sell-order": "ts-node ./src/create-sell-order.ts",

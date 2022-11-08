@@ -3,7 +3,13 @@ config({ path: ".env.test.local" });
 import { CEP47Client } from "casper-cep47-js-client";
 import { getDeploy, getAccountNamedKeyValue, sleep } from "../utils";
 
-import { Keys, CasperClient } from "casper-js-sdk";
+import {
+  Keys,
+  CasperClient,
+  CLValueBuilder,
+  decodeBase16,
+  CLPublicKey,
+} from "casper-js-sdk";
 
 import testData from "../test-data/nft.json";
 
@@ -40,8 +46,8 @@ const test = async () => {
   //   `${CE47_CONTRACT_NAME!}_contract_package_hash`
   // );
 
-  const contractHash = `hash-3349d98a013dba40bc95e77ac7225c31657a6ee39786729f362366956816c9f1`;
-  const contractPackageHash = `hash-33f0ba69adef5b8898ade783f1d8ad9386fb3b2cd41f44b6ff6cf165b000448a`;
+  const contractHash = `hash-9cefe49ff34d29a5713fdf2de3f9c3f3cb3c5226ced0607bdf375f5d2497d8b6`;
+  const contractPackageHash = `hash-df8730dd89e264daf25b2430ea25dc7b02bef1cbf5b4ce83da18c703de1d1351`;
 
   console.log(`... Contract Hash: ${contractHash}`);
 
@@ -61,6 +67,10 @@ const test = async () => {
 
   console.log("\n*************************\n");
 
+  const owner = CLPublicKey.fromHex(
+    "0183aaf23c198c7209d37b29170055c4fb8a2b4b4f20a71d91b85453f4017d65ee"
+  );
+
   const promises = testData.tokens.map(async (token) => {
     console.log(`... Mint token ${token.tokenId} \n`);
 
@@ -71,7 +81,7 @@ const test = async () => {
     });
 
     const mintDeploy = await cep47.mint(
-      KEYS.publicKey,
+      owner,
       [`${token.tokenId}`],
       [meta],
       MINT_ONE_PAYMENT_AMOUNT!,
